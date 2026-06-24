@@ -1,0 +1,13 @@
+{
+  "name": "@services-sandbox/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
+  }
+}

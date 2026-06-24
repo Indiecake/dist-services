@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Disallowed package managers
+package-lock.json
+yarn.lock
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Logs and diagnostics
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local caches and temp files
+.cache/
+tmp/
+temp/
+
+# Docker local overrides (keep compose defaults in repo)
+docker-compose.override.yml
