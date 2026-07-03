@@ -6,6 +6,8 @@ Use this folder as the primary source of truth for repository-specific guidance,
 
 - [Architecture](./architecture.md): platform overview, service roles, and saga orchestration flow
 - [Service Conventions](./service-conventions.md): service naming, ports, health checks, configuration, logging, and folder layout
+- [Service Building Guide](./service-building-guide.md): DIST-3 implementation playbook, Drizzle setup, testing, and ticket map
+- [API Contracts](./api-contracts.md): HTTP request and response shapes for gateway and services
 - [Local Development](./local-development.md): local environment commands, URLs, and troubleshooting notes
 - [Database Layout](./database-layout.md): service-owned schemas and migration ownership rules
 

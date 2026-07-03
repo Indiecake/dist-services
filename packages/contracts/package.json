@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./messages/order-service-workflow": "./messages/order-service-workflow.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.3"

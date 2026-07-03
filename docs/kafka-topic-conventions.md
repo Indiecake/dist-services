@@ -111,6 +111,22 @@ Example event envelope:
 - Consumers should record `messageId` in inbox or idempotency state before applying business side effects so replayed Kafka deliveries do not duplicate work.
 - Consumers should log `messageId`, `correlationId`, `causationId`, and partition key fields together to make distributed debugging easier.
 
+## Architecture name cross-reference
+
+`docs/architecture.md` uses PascalCase event names in prose. Envelope `type` values use dot notation. Use this table when translating between docs and code:
+
+| Architecture name | Envelope `type` | Catalog constant |
+| --- | --- | --- |
+| `OrderCreated` | `order.created` | `MESSAGE_TYPES.ORDER_CREATED` |
+| `PaymentCharged` | `payment.charged` | `MESSAGE_TYPES.PAYMENT_CHARGED` |
+| `PaymentFailed` | `payment.failed` | `MESSAGE_TYPES.PAYMENT_FAILED` |
+| `InventoryReserved` | `inventory.reserved` | `MESSAGE_TYPES.INVENTORY_RESERVED` |
+| `InventoryReservationFailed` | `inventory.reservation.failed` | `MESSAGE_TYPES.INVENTORY_RESERVATION_FAILED` |
+| `ShipmentCreated` | `shipping.created` | `MESSAGE_TYPES.SHIPPING_CREATED` |
+| `ShipmentFailed` | `shipping.failed` | `MESSAGE_TYPES.SHIPPING_FAILED` |
+
+Typed payload shapes and command constants live in `packages/contracts/messages/order-service-workflow.ts`.
+
 ## Shared packages
 
 The canonical topic names live in `packages/kafka/index.ts`.
@@ -131,10 +147,11 @@ Use the exported envelope helpers instead of rebuilding contracts ad hoc:
 import {
   createCommandEnvelope,
   createFollowUpEnvelope
-} from'@services-sandbox/contracts';
+} from '@services-sandbox/contracts';
+import { MESSAGE_TYPES } from '@services-sandbox/contracts/messages/order-service-workflow';
 
 const command = createCommandEnvelope({
-  type: 'inventory.reserve.requested',
+  type: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,
   source: 'saga-orchestrator',
   correlationId: 'corr-order-456',
   payload: {
@@ -144,7 +161,7 @@ const command = createCommandEnvelope({
 });
 
 const event = createFollowUpEnvelope(command, {
-  type: 'inventory.reserved',
+  type: MESSAGE_TYPES.INVENTORY_RESERVED,
   source: 'inventory-service',
   payload: {
     orderId: 'order-456',

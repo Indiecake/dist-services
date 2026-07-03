@@ -51,10 +51,49 @@ Agents must update this file before starting work, while working, and after fini
 | TASK-018 | Document pnpm as required package manager in AGENTS.md | 2026-06-22 | composer-agent | N/A |
 | TASK-019 | Prepare repository for git (cleanup and pnpm alignment) | 2026-06-22 | composer-agent | N/A |
 | TASK-020 | Replace bash test runner with Node-native orchestrator | 2026-06-22 | composer-agent | N/A |
+| TASK-021 | DIST-3 design definition + order-service reference skeleton | 2026-06-23 | composer-agent | DIST-3 |
+| TASK-022 | Remove .ts extensions from order-service imports | 2026-07-03 | composer-agent | N/A |
 
 ---
 
 ## Detailed Task Notes
+
+### TASK-021 - DIST-3 design definition + order-service reference skeleton
+
+**Status:** DONE
+**Agent:** composer-agent
+**Related Jira:** DIST-3
+**Started:** 2026-06-23
+**Last updated:** 2026-06-23
+
+#### Goal
+
+Establish the DIST-3 building blueprint (ADRs, contracts, service guide, API map) and validate it with a runnable order-service reference skeleton using Fastify, Drizzle ORM, Jest unit tests, and `node:test` integration tests.
+
+#### Files touched
+
+```text
+/docs/adr/0004-service-runtime-stack.md
+/docs/adr/0005-service-internal-layering.md
+/docs/adr/README.md
+/docs/service-building-guide.md
+/docs/api-contracts.md
+/docs/kafka-topic-conventions.md
+/docs/README.md
+/packages/contracts/messages/order-service-workflow.ts
+/packages/contracts/test/dist3-workflow.test.ts
+/packages/contracts/package.json
+/apps/order-service
+/tests/test-suite.ts
+/tests/run-all.ts
+/pnpm-workspace.yaml
+/pnpm-lock.yaml
+/docs/agent-task-log.md
+```
+
+#### Verification
+
+- `pnpm test`
 
 ### TASK-020 - Replace bash test runner with Node-native orchestrator
 

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Monorepo foundation for the distributed services sandbox.",
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@11.8.0",
   "type": "module",
   "workspaces": [
     "apps/*",
@@ -16,5 +16,8 @@
     "test:telemetry": "node --test packages/telemetry/test/*.test.ts",
     "test:kafka": "node --test packages/kafka/test/*.test.ts",
     "test:checks": "node --test tests/checks/*.test.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4"
   }
 }
