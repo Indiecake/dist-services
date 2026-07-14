@@ -1,14 +1,18 @@
 # order-service
 
-Reference skeleton for the order domain service. Implements the DIST-3 building blueprint with Fastify, Drizzle ORM, shared config/telemetry, and the standard Jest + `node:test` split.
+Reference service for the order domain. Implements the DIST-3 building blueprint with Fastify, Drizzle ORM, shared config/telemetry, and the standard Jest + `node:test` split.
 
 ## Status
 
-Reference skeleton only:
+Implemented for DIST-15:
 
 - `GET /health` liveness endpoint
+- `GET /ready` readiness endpoint (Postgres connectivity)
+- `POST /orders` create PENDING order with items and status history
+- `GET /orders/:orderId` fetch order aggregate
 - Drizzle schema and migrate-on-startup
-- Business routes (`POST /orders`, `GET /orders/:orderId`, `GET /ready`) are planned for DIST-15
+
+Kafka/outbox publishing is planned for DIST-16+.
 
 ## Local configuration
 
@@ -48,6 +52,9 @@ pnpm exec drizzle-kit generate
 | Method | Path | Description |
 | ------ | ---- | ----------- |
 | GET | `/health` | Liveness check |
+| GET | `/ready` | Readiness check |
+| POST | `/orders` | Create PENDING order |
+| GET | `/orders/:orderId` | Fetch order aggregate |
 
 ## Related docs
 

@@ -53,10 +53,52 @@ Agents must update this file before starting work, while working, and after fini
 | TASK-020 | Replace bash test runner with Node-native orchestrator | 2026-06-22 | composer-agent | N/A |
 | TASK-021 | DIST-3 design definition + order-service reference skeleton | 2026-06-23 | composer-agent | DIST-3 |
 | TASK-022 | Remove .ts extensions from order-service imports | 2026-07-03 | composer-agent | N/A |
+| TASK-023 | DIST-14 + DIST-15 order creation route | 2026-07-09 | composer-agent | DIST-14, DIST-15 |
 
 ---
 
 ## Detailed Task Notes
+
+### TASK-023 - DIST-14 + DIST-15 order creation route
+
+**Status:** DONE
+**Agent:** composer-agent
+**Related Jira:** DIST-14, DIST-15
+**Started:** 2026-07-09
+**Last updated:** 2026-07-09
+
+#### Goal
+
+Implement coordinated order creation across api-gateway (DIST-14) and order-service (DIST-15): shared HTTP validation, edge service config, gateway forwarding with correlation ids, and order persistence.
+
+#### Files touched
+
+```text
+/docs/agent-task-log.md
+/docs/api-contracts.md
+/docs/configuration-package.md
+/packages/contracts/http/create-order.ts
+/packages/contracts/test/create-order.test.ts
+/packages/contracts/package.json
+/packages/config/index.ts
+/packages/config/test/config.test.ts
+/apps/order-service/src/domain/create-order.ts
+/apps/order-service/src/db/orders-repository.ts
+/apps/order-service/src/routes/orders.ts
+/apps/order-service/src/server.ts
+/apps/order-service/package.json
+/apps/order-service/README.md
+/apps/order-service/test/unit/create-order.test.ts
+/apps/order-service/test/integration/orders.test.ts
+/apps/order-service/test/integration/gateway-e2e.test.ts
+/apps/api-gateway/
+/tests/test-suite.ts
+/pnpm-lock.yaml
+```
+
+#### Verification
+
+- `pnpm test`
 
 ### TASK-021 - DIST-3 design definition + order-service reference skeleton
 

@@ -14,6 +14,10 @@ export const testSuites: readonly TestSuite[] = [
     label: 'contracts order-service workflow catalog',
     path: 'packages/contracts/test/order-service-workflow.test.ts'
   },
+  {
+    label: 'contracts create-order validation',
+    path: 'packages/contracts/test/create-order.test.ts'
+  },
   { label: 'kafka package', path: 'packages/kafka/test/topic-definitions.test.ts' },
   { label: 'telemetry package', path: 'packages/telemetry/test/telemetry.test.ts' },
   { label: 'platform foundation checks', path: 'tests/checks/platform-foundation.test.ts' },
@@ -25,8 +29,32 @@ export const testSuites: readonly TestSuite[] = [
     cwd: 'apps/order-service'
   },
   {
+    label: 'order-service create-order unit tests',
+    path: 'apps/order-service/test/unit/create-order.test.ts',
+    runner: 'jest',
+    cwd: 'apps/order-service'
+  },
+  {
     label: 'order-service integration tests',
     path: 'apps/order-service/test/integration/health.test.ts'
+  },
+  {
+    label: 'order-service orders integration tests',
+    path: 'apps/order-service/test/integration/orders.test.ts'
+  },
+  {
+    label: 'order-service gateway e2e integration tests',
+    path: 'apps/order-service/test/integration/gateway-e2e.test.ts'
+  },
+  {
+    label: 'api-gateway unit tests',
+    path: 'apps/api-gateway/test/unit/gateway.test.ts',
+    runner: 'jest',
+    cwd: 'apps/api-gateway'
+  },
+  {
+    label: 'api-gateway integration tests',
+    path: 'apps/api-gateway/test/integration/orders.test.ts'
   },
   { label: 'test suite registry', path: 'tests/run-all.test.ts' }
 ];

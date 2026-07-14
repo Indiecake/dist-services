@@ -54,7 +54,8 @@ Base URL (local): `http://localhost:3010`
 }
 ```
 
-The gateway forwards the same JSON body to order-service and returns the downstream status code and payload.
+The gateway forwards the same JSON request body to order-service. On success (201), it returns the public gateway response shape defined above. On failure (4xx/5xx), it passes through the downstream status code and { "error": "..." } body unchanged.
+
 
 ## order-service
 

@@ -13,6 +13,14 @@ interface ServiceConfig {
   logLevel: ValidLogLevel;
 }
 
+interface EdgeServiceConfig {
+  serviceName: string;
+  port: number;
+  kafkaBootstrapServers: string[];
+  otelExporterOtlpEndpoint: string;
+  logLevel: ValidLogLevel;
+}
+
 class ConfigValidationError extends Error {
   issues: string[];
 
@@ -116,6 +124,28 @@ function readLogLevel(
   return normalized as ValidLogLevel;
 }
 
+function loadEdgeServiceConfig(env: ServiceEnvironment = process.env): EdgeServiceConfig {
+  const issues: ValidationIssues = [];
+
+  const serviceName = readRequiredString(env, 'SERVICE_NAME', issues);
+  const port = readPort(env, 'PORT', issues);
+  const kafkaBootstrapServers = readKafkaBootstrapServers(env, 'KAFKA_BOOTSTRAP_SERVERS', issues);
+  const otelExporterOtlpEndpoint = readUrl(env, 'OTEL_EXPORTER_OTLP_ENDPOINT', issues);
+  const logLevel = readLogLevel(env, 'LOG_LEVEL', issues);
+
+  if (issues.length > 0) {
+    throw new ConfigValidationError(issues);
+  }
+
+  return {
+    serviceName: serviceName as string,
+    port: port as number,
+    kafkaBootstrapServers,
+    otelExporterOtlpEndpoint: otelExporterOtlpEndpoint as string,
+    logLevel: logLevel as ValidLogLevel
+  };
+}
+
 function loadServiceConfig(env: ServiceEnvironment = process.env): ServiceConfig {
   const issues: ValidationIssues = [];
 
@@ -143,5 +173,8 @@ function loadServiceConfig(env: ServiceEnvironment = process.env): ServiceConfig
 export {
   ConfigValidationError,
   VALID_LOG_LEVELS,
+  loadEdgeServiceConfig,
   loadServiceConfig
 };
+
+export type { EdgeServiceConfig, ServiceConfig };

@@ -6,6 +6,7 @@
   "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
+    "./http/create-order": "./http/create-order.ts",
     "./messages/order-service-workflow": "./messages/order-service-workflow.ts"
   },
   "devDependencies": {

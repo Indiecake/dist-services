@@ -12,11 +12,45 @@ importers:
         specifier: ^4.22.4
         version: 4.22.4
 
+  apps/api-gateway:
+    dependencies:
+      '@services-sandbox/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@services-sandbox/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@services-sandbox/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      fastify:
+        specifier: ^5.2.1
+        version: 5.8.5
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      jest:
+        specifier: ^30.2.0
+        version: 30.4.2(@types/node@25.9.4)
+      ts-jest:
+        specifier: ^29.4.6
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@25.9.4))(typescript@6.0.3)
+      tsx:
+        specifier: ^4.22.4
+        version: 4.22.4
+
   apps/order-service:
     dependencies:
       '@services-sandbox/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@services-sandbox/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@services-sandbox/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
