@@ -1,16 +1,9 @@
-import type { CreateOrderRequest, OrderServiceCreateResponse } from '@services-sandbox/contracts/http/create-order';
+import type {
+  CreateOrderRequest,
+  OrderServiceCreateResponse
+} from '@services-sandbox/contracts/http/create-order';
 
-export interface OrderServiceClientOptions {
-  baseUrl: string;
-  timeoutMs: number;
-  fetchImpl?: typeof fetch;
-}
-
-export interface OrderServiceClientResult {
-  ok: boolean;
-  statusCode: number;
-  body: unknown;
-}
+import { createHttpClient, type HttpResponse } from './http-client.ts';
 
 export interface OrderRequestContext {
   requestId: string;
@@ -18,68 +11,46 @@ export interface OrderRequestContext {
   traceId: string | null;
 }
 
-function buildTraceparent(traceId: string | null): string | undefined {
-  if (!traceId) {
-    return undefined;
-  }
+interface OrderServiceClient {
+  getOrder(
+    orderId: string,
+    context: OrderRequestContext
+  ): Promise<HttpResponse<OrderServiceCreateResponse>>;
 
-  return `00-${traceId}-0000000000000001-01`;
+  createOrder(
+    body: CreateOrderRequest,
+    context: OrderRequestContext
+  ): Promise<HttpResponse<OrderServiceCreateResponse>>;
 }
 
-export function createOrderServiceClient({
-  baseUrl,
-  timeoutMs,
-  fetchImpl = fetch
-}: OrderServiceClientOptions) {
+export function createOrderServiceClient(
+  httpClient: ReturnType<typeof createHttpClient>
+): OrderServiceClient {
   return {
-    async createOrder(
-      body: CreateOrderRequest,
-      context: OrderRequestContext
-    ): Promise<OrderServiceClientResult> {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    getOrder(orderId: string, context: OrderRequestContext) {
+      return httpClient<OrderServiceCreateResponse>(
+        `/orders/${orderId}`,
+        { method: 'GET' },
+        context
+      );
+    },
 
-      try {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'x-request-id': context.requestId,
-          'x-correlation-id': context.correlationId
-        };
-
-        const traceparent = buildTraceparent(context.traceId);
-
-        if (traceparent) {
-          headers.traceparent = traceparent;
-        }
-
-        const response = await fetchImpl(`${baseUrl}/orders`, {
+    createOrder(body: CreateOrderRequest, context: OrderRequestContext) {
+      return httpClient<OrderServiceCreateResponse>(
+        '/orders',
+        {
           method: 'POST',
-          headers,
-          body: JSON.stringify(body),
-          signal: controller.signal
-        });
-
-        const responseBody = await response.json();
-
-        return {
-          ok: response.ok,
-          statusCode: response.status,
-          body: responseBody
-        };
-      } catch {
-        return {
-          ok: false,
-          statusCode: 502,
-          body: { error: 'order-service unavailable' }
-        };
-      } finally {
-        clearTimeout(timeout);
-      }
+          body: JSON.stringify(body)
+        },
+        context
+      );
     }
   };
 }
 
-export function isOrderServiceCreateResponse(body: unknown): body is OrderServiceCreateResponse {
+export function isOrderServiceCreateResponse(
+  body: unknown
+): body is OrderServiceCreateResponse {
   if (body === null || typeof body !== 'object') {
     return false;
   }

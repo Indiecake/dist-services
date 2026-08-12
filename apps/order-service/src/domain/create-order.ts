@@ -1,9 +1,9 @@
 import {
-  CreateOrderValidationError,
   calculateTotalAmountCents,
   validateCreateOrder,
   type CreateOrderRequest
 } from '@services-sandbox/contracts/http/create-order';
+import { ContractValidationError } from '@services-sandbox/contracts/http/errors';
 import { INITIAL_ORDER_STATUS } from './types.ts';
 
 export function prepareCreateOrder(input: CreateOrderRequest | unknown) {
@@ -19,7 +19,7 @@ export function prepareCreateOrder(input: CreateOrderRequest | unknown) {
       totalAmountCents
     };
   } catch (error) {
-    if (error instanceof CreateOrderValidationError) {
+    if (error instanceof ContractValidationError) {
       throw error;
     }
 

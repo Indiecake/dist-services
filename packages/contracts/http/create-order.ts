@@ -1,3 +1,4 @@
+import { ContractValidationError } from './errors.ts';
 export const SUPPORTED_CURRENCIES = ['USD'] as const;
 
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
@@ -39,13 +40,6 @@ export interface GatewayCreateOrderResponse {
   currency: string;
 }
 
-export class CreateOrderValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'CreateOrderValidationError';
-  }
-}
-
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
@@ -60,46 +54,46 @@ export function calculateTotalAmountCents(items: CreateOrderItem[]): number {
 
 export function validateCreateOrder(input: unknown): CreateOrderRequest {
   if (input === null || typeof input !== 'object') {
-    throw new CreateOrderValidationError('Request body must be a JSON object');
+    throw new ContractValidationError('Request body must be a JSON object');
   }
 
   const body = input as Record<string, unknown>;
 
   if (!isNonEmptyString(body.customerId)) {
-    throw new CreateOrderValidationError('customerId is required');
+    throw new ContractValidationError('customerId is required');
   }
 
   if (!isNonEmptyString(body.currency)) {
-    throw new CreateOrderValidationError('currency is required');
+    throw new ContractValidationError('currency is required');
   }
 
   if (!SUPPORTED_CURRENCIES.includes(body.currency as SupportedCurrency)) {
-    throw new CreateOrderValidationError('currency must be supported');
+    throw new ContractValidationError('currency must be supported');
   }
 
   if (!Array.isArray(body.items) || body.items.length === 0) {
-    throw new CreateOrderValidationError('items must contain at least one entry');
+    throw new ContractValidationError('items must contain at least one entry');
   }
 
   const items: CreateOrderItem[] = [];
 
   for (const [index, rawItem] of body.items.entries()) {
     if (rawItem === null || typeof rawItem !== 'object') {
-      throw new CreateOrderValidationError(`items[${index}] must be an object`);
+      throw new ContractValidationError(`items[${index}] must be an object`);
     }
 
     const item = rawItem as Record<string, unknown>;
 
     if (!isNonEmptyString(item.productId)) {
-      throw new CreateOrderValidationError('productId is required');
+      throw new ContractValidationError('productId is required');
     }
 
     if (!isPositiveInteger(item.quantity)) {
-      throw new CreateOrderValidationError('quantity must be greater than 0');
+      throw new ContractValidationError('quantity must be greater than 0');
     }
 
     if (!isPositiveInteger(item.unitPriceCents)) {
-      throw new CreateOrderValidationError('unitPriceCents must be greater than 0');
+      throw new ContractValidationError('unitPriceCents must be greater than 0');
     }
 
     items.push({

@@ -32,6 +32,7 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-026 | Wire createHttpClient into order-service client | 2026-08-11 | cursor-agent | N/A |
 | TASK-000 | Initialize repository | 2026-06-03 | agent-name | N/A |
 | TASK-001 | Create monorepo structure | 2026-06-03 | codex-agent | DIST-9 |
 | TASK-002 | Create Docker Compose platform | 2026-06-03 | codex-agent | DIST-10 |
@@ -54,10 +55,95 @@ Agents must update this file before starting work, while working, and after fini
 | TASK-021 | DIST-3 design definition + order-service reference skeleton | 2026-06-23 | composer-agent | DIST-3 |
 | TASK-022 | Remove .ts extensions from order-service imports | 2026-07-03 | composer-agent | N/A |
 | TASK-023 | DIST-14 + DIST-15 order creation route | 2026-07-09 | composer-agent | DIST-14, DIST-15 |
+| TASK-024 | Refactor order-service client shared request helper | 2026-08-11 | cursor-agent | N/A |
+| TASK-025 | Replace CreateOrderValidationError with ContractValidationError | 2026-08-11 | cursor-agent | N/A |
 
 ---
 
 ## Detailed Task Notes
+
+### TASK-026 - Wire createHttpClient into order-service client
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** N/A
+**Started:** 2026-08-11
+**Last updated:** 2026-08-11
+
+#### Goal
+
+Finish the http-client extraction: fix order-service client typing, pass `createHttpClient` into `createOrderServiceClient`, and update gateway routes/tests.
+
+#### Expected files to change
+
+```text
+/apps/api-gateway/src/clients/http-client.ts
+/apps/api-gateway/src/clients/order-service-client.ts
+/apps/api-gateway/src/routes/orders.ts
+/apps/api-gateway/test/unit/gateway.test.ts
+/docs/agent-task-log.md
+```
+
+#### Outcome
+
+- `createOrderServiceClient` now takes the shared http client and returns typed `OrderServiceCreateResponse` wrappers.
+- Routes and unit tests construct `createHttpClient` then pass it in.
+- Restored `traceparent` header support on the shared client. All api-gateway unit + integration tests pass.
+
+### TASK-025 - Replace CreateOrderValidationError with ContractValidationError
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** N/A
+**Started:** 2026-08-11
+**Last updated:** 2026-08-11
+
+#### Goal
+
+Switch remaining app and test call sites from `CreateOrderValidationError` to shared `ContractValidationError`, and export the errors module from contracts.
+
+#### Expected files to change
+
+```text
+/packages/contracts/package.json
+/packages/contracts/test/create-order.test.ts
+/apps/order-service/src/domain/create-order.ts
+/apps/order-service/src/routes/orders.ts
+/apps/api-gateway/src/routes/orders.ts
+/docs/agent-task-log.md
+```
+
+#### Outcome
+
+- Exported `@services-sandbox/contracts/http/errors`
+- Updated order-service domain/routes, api-gateway routes, and contracts tests to use `ContractValidationError`
+- Contracts create-order tests pass
+
+### TASK-024 - Refactor order-service client shared request helper
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** N/A
+**Started:** 2026-08-11
+**Last updated:** 2026-08-11
+
+#### Goal
+
+Extract a shared private `request` helper in the api-gateway order-service client so timeout/abort, correlation headers, JSON parsing, and unavailable-error mapping live in one place. Slim `getOrder` and `createOrder` to thin wrappers.
+
+#### Expected files to change
+
+```text
+/apps/api-gateway/src/clients/order-service-client.ts
+/apps/api-gateway/test/unit/gateway.test.ts
+/docs/agent-task-log.md
+```
+
+#### Outcome
+
+- Added private `request()` with AbortController timeout, correlation/trace headers, JSON parse, and 502 unavailable mapping.
+- `getOrder` and `createOrder` are thin wrappers over `request()`.
+- Unit tests cover getOrder headers/signal path and shared 502 behavior. All 5 api-gateway unit tests pass.
 
 ### TASK-023 - DIST-14 + DIST-15 order creation route
 

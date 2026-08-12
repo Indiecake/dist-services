@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  CreateOrderValidationError,
   calculateTotalAmountCents,
   toGatewayCreateOrderResponse,
   validateCreateOrder
 } from '../http/create-order.ts';
+import { ContractValidationError } from '../http/errors.ts';
 
 const validRequest = {
   customerId: 'cust-123',
@@ -30,7 +30,7 @@ test('validateCreateOrder rejects missing customerId', () => {
   assert.throws(
     () => validateCreateOrder({ ...validRequest, customerId: '' }),
     (error) => {
-      assert.ok(error instanceof CreateOrderValidationError);
+      assert.ok(error instanceof ContractValidationError);
       assert.equal(error.message, 'customerId is required');
       return true;
     }
@@ -41,7 +41,7 @@ test('validateCreateOrder rejects unsupported currency', () => {
   assert.throws(
     () => validateCreateOrder({ ...validRequest, currency: 'EUR' }),
     (error) => {
-      assert.ok(error instanceof CreateOrderValidationError);
+      assert.ok(error instanceof ContractValidationError);
       assert.equal(error.message, 'currency must be supported');
       return true;
     }
@@ -52,7 +52,7 @@ test('validateCreateOrder rejects empty items', () => {
   assert.throws(
     () => validateCreateOrder({ ...validRequest, items: [] }),
     (error) => {
-      assert.ok(error instanceof CreateOrderValidationError);
+      assert.ok(error instanceof ContractValidationError);
       assert.equal(error.message, 'items must contain at least one entry');
       return true;
     }
@@ -67,7 +67,7 @@ test('validateCreateOrder rejects invalid item quantity and price', () => {
         items: [{ productId: 'sku-1', quantity: 0, unitPriceCents: 1299 }]
       }),
     (error) => {
-      assert.ok(error instanceof CreateOrderValidationError);
+      assert.ok(error instanceof ContractValidationError);
       assert.equal(error.message, 'quantity must be greater than 0');
       return true;
     }
@@ -80,7 +80,7 @@ test('validateCreateOrder rejects invalid item quantity and price', () => {
         items: [{ productId: 'sku-1', quantity: 1, unitPriceCents: 0 }]
       }),
     (error) => {
-      assert.ok(error instanceof CreateOrderValidationError);
+      assert.ok(error instanceof ContractValidationError);
       assert.equal(error.message, 'unitPriceCents must be greater than 0');
       return true;
     }

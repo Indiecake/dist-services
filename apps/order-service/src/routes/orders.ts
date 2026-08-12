@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
-import { CreateOrderValidationError } from '@services-sandbox/contracts/http/create-order';
+import { ContractValidationError } from '@services-sandbox/contracts/http/errors';
 
 import type { OrderRepository } from '../db/orders-repository.ts';
 import { prepareCreateOrder } from '../domain/create-order.ts';
@@ -26,7 +26,7 @@ export function registerOrderRoutes(app: FastifyInstance, repository: OrderRepos
 
       return reply.status(201).send(toOrderResponse(order));
     } catch (error) {
-      if (error instanceof CreateOrderValidationError) {
+      if (error instanceof ContractValidationError) {
         return reply.status(400).send({ error: error.message });
       }
 
@@ -36,15 +36,24 @@ export function registerOrderRoutes(app: FastifyInstance, repository: OrderRepos
 
   app.get('/orders/:orderId', async (request, reply) => {
     const { orderId } = request.params as { orderId: string };
-    const order = await repository.findById(orderId);
+    try {
+      const order = await repository.findById(orderId);
 
-    if (!order) {
-      return reply.status(404).send({ error: `Order not found: ${orderId}` });
+      if (!order) {
+        return reply.status(404).send({ error: `Order not found: ${orderId}` });
+      }
+  
+      return reply.status(200).send({
+        ...toOrderResponse(order),
+        statusHistory: order.statusHistory
+      });
+    } catch (error) {
+      if (error instanceof ContractValidationError) {
+        return reply.status(400).send({ error: error.message });
+      }
+
+      return reply.status(500).send({ error: 'Failed to create order' });
     }
-
-    return reply.status(200).send({
-      ...toOrderResponse(order),
-      statusHistory: order.statusHistory
-    });
+    
   });
 }
