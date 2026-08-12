@@ -1,7 +1,7 @@
 export interface HttpRequestContext {
   requestId: string;
   correlationId: string;
-  traceId?: string | null;
+  traceId: string | null;
 }
 
 export interface HttpClientOptions {

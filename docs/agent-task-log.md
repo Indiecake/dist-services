@@ -32,6 +32,7 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-027 | Deduplicate order interfaces and complete response contracts | 2026-08-11 | cursor-agent | N/A |
 | TASK-026 | Wire createHttpClient into order-service client | 2026-08-11 | cursor-agent | N/A |
 | TASK-000 | Initialize repository | 2026-06-03 | agent-name | N/A |
 | TASK-001 | Create monorepo structure | 2026-06-03 | codex-agent | DIST-9 |
@@ -61,6 +62,40 @@ Agents must update this file before starting work, while working, and after fini
 ---
 
 ## Detailed Task Notes
+
+### TASK-027 - Deduplicate order interfaces and complete response contracts
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** N/A
+**Started:** 2026-08-11
+**Last updated:** 2026-08-11
+
+#### Goal
+
+Remove unused/duplicated order types and finish incomplete HTTP response/context contracts across gateway, order-service, and shared contracts.
+
+#### Expected files to change
+
+```text
+/packages/contracts/http/create-order.ts
+/packages/contracts/test/create-order.test.ts
+/apps/order-service/src/domain/types.ts
+/apps/order-service/src/domain/create-order.ts
+/apps/order-service/src/routes/orders.ts
+/apps/api-gateway/src/clients/http-client.ts
+/apps/api-gateway/src/clients/order-service-client.ts
+/apps/api-gateway/src/routes/orders.ts
+/apps/api-gateway/test/unit/gateway.test.ts
+/docs/agent-task-log.md
+```
+
+#### Outcome
+
+- Removed unused duplicated domain interfaces; `domain/types.ts` now only keeps `INITIAL_ORDER_STATUS`.
+- Renamed response contract to `OrderServiceOrderResponse` with optional `statusHistory`, typed `currency` as `SupportedCurrency`, and added a real type guard.
+- Dropped `OrderRequestContext` in favor of `HttpRequestContext`; gateway GET/POST error shapes are aligned.
+- `toOrderResponse` now returns the shared contract type. Related unit tests pass.
 
 ### TASK-026 - Wire createHttpClient into order-service client
 

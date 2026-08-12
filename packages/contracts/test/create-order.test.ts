@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   calculateTotalAmountCents,
+  isOrderServiceOrderResponse,
   toGatewayCreateOrderResponse,
   validateCreateOrder
 } from '../http/create-order.ts';
@@ -121,4 +122,39 @@ test('toGatewayCreateOrderResponse projects the public gateway shape', () => {
     totalAmountCents: 2598,
     currency: 'USD'
   });
+});
+
+test('isOrderServiceOrderResponse accepts a full order payload', () => {
+  assert.equal(
+    isOrderServiceOrderResponse({
+      orderId: 'order-1',
+      customerId: 'cust-123',
+      status: 'PENDING',
+      currency: 'USD',
+      totalAmountCents: 2598,
+      items: [
+        {
+          id: 'item-1',
+          productId: 'sku-1',
+          quantity: 2,
+          unitPriceCents: 1299
+        }
+      ],
+      createdAt: '2026-06-23T12:00:00.000Z',
+      updatedAt: '2026-06-23T12:00:00.000Z'
+    }),
+    true
+  );
+});
+
+test('isOrderServiceOrderResponse rejects incomplete payloads', () => {
+  assert.equal(
+    isOrderServiceOrderResponse({
+      orderId: 'order-1',
+      status: 'PENDING',
+      totalAmountCents: 2598,
+      currency: 'USD'
+    }),
+    false
+  );
 });

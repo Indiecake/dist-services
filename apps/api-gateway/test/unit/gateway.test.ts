@@ -2,7 +2,7 @@ import { loadGatewayConfig } from '../../src/config.ts';
 import { createHttpClient } from '../../src/clients/http-client.ts';
 import {
   createOrderServiceClient,
-  isOrderServiceCreateResponse
+  isOrderServiceOrderResponse
 } from '../../src/clients/order-service-client.ts';
 import { toGatewayCreateOrderResponse } from '@services-sandbox/contracts/http/create-order';
 
@@ -40,8 +40,26 @@ describe('loadGatewayConfig', () => {
 describe('createOrderServiceClient', () => {
   const validRequest = {
     customerId: 'cust-123',
-    currency: 'USD',
+    currency: 'USD' as const,
     items: [{ productId: 'sku-1', quantity: 2, unitPriceCents: 1299 }]
+  };
+
+  const validOrderResponse = {
+    orderId: 'order-1',
+    customerId: 'cust-123',
+    status: 'PENDING',
+    currency: 'USD',
+    totalAmountCents: 2598,
+    items: [
+      {
+        id: 'item-1',
+        productId: 'sku-1',
+        quantity: 2,
+        unitPriceCents: 1299
+      }
+    ],
+    createdAt: '2026-06-23T12:00:00.000Z',
+    updatedAt: '2026-06-23T12:00:00.000Z'
   };
 
   it('forwards request body and correlation headers', async () => {
@@ -53,19 +71,10 @@ describe('createOrderServiceClient', () => {
     const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
       calls.push({ url: String(url), init: init ?? {} });
 
-      return new Response(
-        JSON.stringify({
-          orderId: 'order-1',
-          customerId: 'cust-123',
-          status: 'PENDING',
-          currency: 'USD',
-          totalAmountCents: 2598,
-          items: [],
-          createdAt: '2026-06-23T12:00:00.000Z',
-          updatedAt: '2026-06-23T12:00:00.000Z'
-        }),
-        { status: 201, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify(validOrderResponse), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      });
     };
 
     const client = createTestOrderServiceClient(fetchImpl);
@@ -88,9 +97,9 @@ describe('createOrderServiceClient', () => {
     );
 
     expect(result.statusCode).toBe(201);
-    expect(isOrderServiceCreateResponse(result.body)).toBe(true);
+    expect(isOrderServiceOrderResponse(result.body)).toBe(true);
 
-    if (isOrderServiceCreateResponse(result.body)) {
+    if (isOrderServiceOrderResponse(result.body)) {
       expect(toGatewayCreateOrderResponse(result.body)).toEqual({
         orderId: 'order-1',
         status: 'PENDING',
@@ -126,10 +135,16 @@ describe('createOrderServiceClient', () => {
 
       return new Response(
         JSON.stringify({
-          orderId: 'order-1',
-          status: 'PENDING',
-          totalAmountCents: 2598,
-          currency: 'USD'
+          ...validOrderResponse,
+          statusHistory: [
+            {
+              id: 'hist-1',
+              fromStatus: null,
+              toStatus: 'PENDING',
+              changedAt: '2026-06-23T12:00:00.000Z',
+              reason: null
+            }
+          ]
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
@@ -157,6 +172,7 @@ describe('createOrderServiceClient', () => {
 
     expect(result.ok).toBe(true);
     expect(result.statusCode).toBe(200);
+    expect(isOrderServiceOrderResponse(result.body)).toBe(true);
   });
 
   it('getOrder returns 502 when downstream is unavailable', async () => {

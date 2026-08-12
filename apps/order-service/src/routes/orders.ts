@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 
+import type { OrderServiceOrderResponse } from '@services-sandbox/contracts/http/create-order';
 import { ContractValidationError } from '@services-sandbox/contracts/http/errors';
 
-import type { OrderRepository } from '../db/orders-repository.ts';
+import type { OrderRecord, OrderRepository } from '../db/orders-repository.ts';
 import { prepareCreateOrder } from '../domain/create-order.ts';
 
-function toOrderResponse(order: Awaited<ReturnType<OrderRepository['createOrder']>>) {
+function toOrderResponse(order: OrderRecord): OrderServiceOrderResponse {
   return {
     orderId: order.id,
     customerId: order.customerId,
@@ -36,13 +37,14 @@ export function registerOrderRoutes(app: FastifyInstance, repository: OrderRepos
 
   app.get('/orders/:orderId', async (request, reply) => {
     const { orderId } = request.params as { orderId: string };
+
     try {
       const order = await repository.findById(orderId);
 
       if (!order) {
         return reply.status(404).send({ error: `Order not found: ${orderId}` });
       }
-  
+
       return reply.status(200).send({
         ...toOrderResponse(order),
         statusHistory: order.statusHistory
@@ -52,8 +54,7 @@ export function registerOrderRoutes(app: FastifyInstance, repository: OrderRepos
         return reply.status(400).send({ error: error.message });
       }
 
-      return reply.status(500).send({ error: 'Failed to create order' });
+      return reply.status(500).send({ error: 'Failed to get order' });
     }
-    
   });
 }

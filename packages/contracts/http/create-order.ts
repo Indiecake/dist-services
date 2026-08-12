@@ -1,4 +1,5 @@
 import { ContractValidationError } from './errors.ts';
+
 export const SUPPORTED_CURRENCIES = ['USD'] as const;
 
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
@@ -11,7 +12,7 @@ export interface CreateOrderItem {
 
 export interface CreateOrderRequest {
   customerId: string;
-  currency: string;
+  currency: SupportedCurrency;
   items: CreateOrderItem[];
 }
 
@@ -22,7 +23,15 @@ export interface OrderServiceItemResponse {
   unitPriceCents: number;
 }
 
-export interface OrderServiceCreateResponse {
+export interface OrderStatusHistoryResponse {
+  id: string;
+  fromStatus: string | null;
+  toStatus: string;
+  changedAt: string;
+  reason: string | null;
+}
+
+export interface OrderServiceOrderResponse {
   orderId: string;
   customerId: string;
   status: string;
@@ -31,6 +40,7 @@ export interface OrderServiceCreateResponse {
   items: OrderServiceItemResponse[];
   createdAt: string;
   updatedAt: string;
+  statusHistory?: OrderStatusHistoryResponse[];
 }
 
 export interface GatewayCreateOrderResponse {
@@ -46,6 +56,43 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0;
+}
+
+function isOrderServiceItemResponse(value: unknown): value is OrderServiceItemResponse {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  const item = value as Record<string, unknown>;
+
+  return (
+    typeof item.id === 'string' &&
+    typeof item.productId === 'string' &&
+    typeof item.quantity === 'number' &&
+    typeof item.unitPriceCents === 'number'
+  );
+}
+
+export function isOrderServiceOrderResponse(
+  body: unknown
+): body is OrderServiceOrderResponse {
+  if (body === null || typeof body !== 'object') {
+    return false;
+  }
+
+  const candidate = body as Record<string, unknown>;
+
+  return (
+    typeof candidate.orderId === 'string' &&
+    typeof candidate.customerId === 'string' &&
+    typeof candidate.status === 'string' &&
+    typeof candidate.currency === 'string' &&
+    typeof candidate.totalAmountCents === 'number' &&
+    typeof candidate.createdAt === 'string' &&
+    typeof candidate.updatedAt === 'string' &&
+    Array.isArray(candidate.items) &&
+    candidate.items.every(isOrderServiceItemResponse)
+  );
 }
 
 export function calculateTotalAmountCents(items: CreateOrderItem[]): number {
@@ -105,13 +152,13 @@ export function validateCreateOrder(input: unknown): CreateOrderRequest {
 
   return {
     customerId: body.customerId.trim(),
-    currency: body.currency.trim(),
+    currency: body.currency.trim() as SupportedCurrency,
     items
   };
 }
 
 export function toGatewayCreateOrderResponse(
-  downstream: OrderServiceCreateResponse
+  downstream: OrderServiceOrderResponse
 ): GatewayCreateOrderResponse {
   return {
     orderId: downstream.orderId,
