@@ -12,7 +12,7 @@ const MESSAGE_ENVELOPE_FIELDS = Object.freeze([
   'payload'
 ]);
 
-type MessageEnvelope<TPayload = unknown> = {
+export type MessageEnvelope<TPayload = unknown> = {
   messageId: string;
   type: string;
   version: number;
@@ -24,7 +24,7 @@ type MessageEnvelope<TPayload = unknown> = {
   payload: TPayload;
 };
 
-interface CreateMessageEnvelopeInput<TPayload> {
+export interface CreateMessageEnvelopeInput<TPayload> {
   messageId?: string;
   type: string;
   version?: number;
@@ -36,7 +36,7 @@ interface CreateMessageEnvelopeInput<TPayload> {
   payload: TPayload;
 }
 
-interface CreateFollowUpEnvelopeInput<TPayload> {
+export interface CreateFollowUpEnvelopeInput<TPayload> {
   messageId?: string;
   type: string;
   version?: number;

@@ -6,7 +6,7 @@
 
 - Topic names use the format `<namespace>.<kind>.<domain>`.
 - The namespace is `dist`.
-- `kind` is either `command` or `event`.
+- `kind` is `command`, `event`, or `deadletter`.
 - `domain` is the owning business area such as `orders` or `payments`.
 
 Examples:
@@ -15,6 +15,7 @@ Examples:
 - `dist.command.payments`
 - `dist.event.inventory`
 - `dist.event.saga`
+- `dist.deadletter.payments`
 
 This convention keeps topic names predictable, groups related streams together in Kafka UI, and avoids ambiguous names such as `created` or `updated` without a domain prefix.
 
@@ -36,6 +37,19 @@ This convention keeps topic names predictable, groups related streams together i
 | Inventory | `dist.event.inventory` | Stock reservation and release events | `orderId` |
 | Shipping | `dist.event.shipping` | Shipment creation, dispatch, and compensation events | `orderId` |
 | Saga | `dist.event.saga` | Saga orchestration lifecycle events such as started, timed out, compensated, or completed | `sagaId` |
+
+## Dead-letter topics
+
+Poison envelopes and commands that exhaust bounded retries are published to a domain dead-letter topic so the source partition can continue. Payment-service also persists the same record in `payments_schema.dead_letter_events` in the same outbox transaction.
+
+| Domain | Topic | Purpose | Partition key |
+|---|---|---|---|
+| Orders | `dist.deadletter.orders` | Unprocessable order commands reserved for a future order-service consumer | `orderId` |
+| Payments | `dist.deadletter.payments` | Unprocessable payment commands after validation failure or exhausted retries | `orderId` |
+| Inventory | `dist.deadletter.inventory` | Unprocessable inventory commands reserved for a future inventory-service consumer | `orderId` |
+| Shipping | `dist.deadletter.shipping` | Unprocessable shipping commands reserved for a future shipping-service consumer | `orderId` |
+
+Consumers should dead-letter unknown `type` values, unsupported `version` values, and malformed envelopes. Business declines such as a refused charge are result events (`payment.failed`), not dead letters.
 
 ## Partition key strategy
 
@@ -120,6 +134,10 @@ Example event envelope:
 | `OrderCreated` | `order.created` | `MESSAGE_TYPES.ORDER_CREATED` |
 | `PaymentCharged` | `payment.charged` | `MESSAGE_TYPES.PAYMENT_CHARGED` |
 | `PaymentFailed` | `payment.failed` | `MESSAGE_TYPES.PAYMENT_FAILED` |
+| `RefundPaymentRequested` | `payment.refund.requested` | `MESSAGE_TYPES.PAYMENT_REFUND_REQUESTED` |
+| `PaymentRefunded` | `payment.refunded` | `MESSAGE_TYPES.PAYMENT_REFUNDED` |
+| `RefundPaymentFailed` | `payment.refund.failed` | `MESSAGE_TYPES.PAYMENT_REFUND_FAILED` |
+| `PaymentDeadlettered` | `payment.deadlettered` | `MESSAGE_TYPES.PAYMENT_DEADLETTERED` |
 | `InventoryReserved` | `inventory.reserved` | `MESSAGE_TYPES.INVENTORY_RESERVED` |
 | `InventoryReservationFailed` | `inventory.reservation.failed` | `MESSAGE_TYPES.INVENTORY_RESERVATION_FAILED` |
 | `ShipmentCreated` | `shipping.created` | `MESSAGE_TYPES.SHIPPING_CREATED` |
@@ -135,10 +153,12 @@ The canonical message envelope helpers live in `packages/contracts/index.ts`.
 Use the exported constants instead of hardcoding topic strings in services:
 
 ```ts
-import { COMMAND_TOPICS, EVENT_TOPICS, getTopicPartitionKey } from '@services-sandbox/kafka';
+import { COMMAND_TOPICS, DEADLETTER_TOPICS, EVENT_TOPICS, getTopicPartitionKey } from '@services-sandbox/kafka';
 
 const topic = COMMAND_TOPICS.payments;
+const deadLetterTopic = DEADLETTER_TOPICS.payments;
 const partitionKeyField = getTopicPartitionKey(topic);
+const deadLetterPartitionKeyField = getTopicPartitionKey(deadLetterTopic);
 ```
 
 Use the exported envelope helpers instead of rebuilding contracts ad hoc:

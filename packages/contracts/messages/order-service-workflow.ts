@@ -9,6 +9,10 @@ export const MESSAGE_TYPES = Object.freeze({
   PAYMENT_CHARGE_REQUESTED: 'payment.charge.requested',
   PAYMENT_CHARGED: 'payment.charged',
   PAYMENT_FAILED: 'payment.failed',
+  PAYMENT_REFUND_REQUESTED: 'payment.refund.requested',
+  PAYMENT_REFUNDED: 'payment.refunded',
+  PAYMENT_REFUND_FAILED: 'payment.refund.failed',
+  PAYMENT_DEADLETTERED: 'payment.deadlettered',
   INVENTORY_RESERVE_REQUESTED: 'inventory.reserve.requested',
   INVENTORY_RESERVED: 'inventory.reserved',
   INVENTORY_RESERVATION_FAILED: 'inventory.reservation.failed',
@@ -45,6 +49,34 @@ export interface PaymentFailedPayloadV1 {
   orderId: string;
   paymentId: string;
   reason: string;
+}
+
+export interface PaymentRefundRequestedPayloadV1 {
+  orderId: string;
+  paymentId: string;
+}
+
+export interface PaymentRefundedPayloadV1 {
+  orderId: string;
+  paymentId: string;
+  providerReference: string;
+  refundedAt: string;
+}
+
+export interface PaymentRefundFailedPayloadV1 {
+  orderId: string;
+  paymentId: string;
+  reason: string;
+}
+
+export interface PaymentDeadletteredPayloadV1 {
+  originalTopic: string;
+  originalEnvelope: unknown;
+  reason: string;
+  attempts: number;
+  failedAt: string;
+  orderId?: string;
+  paymentId?: string;
 }
 
 export interface InventoryReserveRequestedPayloadV1 {
@@ -97,6 +129,10 @@ export const ARCHITECTURE_EVENT_TYPE_MAP = Object.freeze({
   OrderCreated: MESSAGE_TYPES.ORDER_CREATED,
   PaymentCharged: MESSAGE_TYPES.PAYMENT_CHARGED,
   PaymentFailed: MESSAGE_TYPES.PAYMENT_FAILED,
+  RefundPaymentRequested: MESSAGE_TYPES.PAYMENT_REFUND_REQUESTED,
+  PaymentRefunded: MESSAGE_TYPES.PAYMENT_REFUNDED,
+  RefundPaymentFailed: MESSAGE_TYPES.PAYMENT_REFUND_FAILED,
+  PaymentDeadlettered: MESSAGE_TYPES.PAYMENT_DEADLETTERED,
   InventoryReserved: MESSAGE_TYPES.INVENTORY_RESERVED,
   InventoryReservationFailed: MESSAGE_TYPES.INVENTORY_RESERVATION_FAILED,
   ShipmentCreated: MESSAGE_TYPES.SHIPPING_CREATED,

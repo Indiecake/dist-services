@@ -19,7 +19,7 @@ Use this folder as the primary source of truth for repository-specific guidance,
 
 ## Decision records
 
-- [ADR Directory](./adr/README.md): location for architecture decision records and long-lived technical decisions
+- [ADR Directory](./adr/README.md): location for architecture decision records and long-lived technical decisions, including [ADR-0002](./adr/0002-use-outbox-pattern.md)
 
 ## Operational notes
 

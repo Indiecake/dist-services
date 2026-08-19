@@ -32,6 +32,8 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-029 | Keep payment processor calls outside the outbox transaction | 2026-08-19 | cursor-agent | DIST-16 |
+| TASK-028 | DIST-16 payment-service charge and refund handlers | 2026-08-18 | cursor-agent | DIST-16 |
 | TASK-027 | Deduplicate order interfaces and complete response contracts | 2026-08-11 | cursor-agent | N/A |
 | TASK-026 | Wire createHttpClient into order-service client | 2026-08-11 | cursor-agent | N/A |
 | TASK-000 | Initialize repository | 2026-06-03 | agent-name | N/A |
@@ -62,6 +64,93 @@ Agents must update this file before starting work, while working, and after fini
 ---
 
 ## Detailed Task Notes
+
+### TASK-029 - Keep payment processor calls outside the outbox transaction
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** DIST-16
+**Started:** 2026-08-19
+**Last updated:** 2026-08-19
+
+#### Goal
+
+Stop holding a Postgres transaction across `PaymentProcessor` charge/refund calls. Claim inbox only in the completion transaction so a crash cannot hide a successful provider side effect, and retry completion writes without repeating the provider call.
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/adr/0002-use-outbox-pattern.md
+/docs/architecture.md
+/apps/payment-service/src/db/payments-repository.ts
+/apps/payment-service/src/domain/charge-payment.ts
+/apps/payment-service/src/domain/refund-payment.ts
+/apps/payment-service/src/domain/processor.ts
+/apps/payment-service/src/domain/processor-commit.ts
+/apps/payment-service/test/unit/charge-payment.test.ts
+/apps/payment-service/test/unit/refund-payment.test.ts
+/apps/payment-service/test/unit/processor-commit.test.ts
+/apps/payment-service/test/integration/payments.test.ts
+/apps/payment-service/README.md
+```
+
+#### Outcome
+
+- Charge and refund now use a short prepare transaction, a processor call with no open DB transaction, then a completion transaction that claims inbox and writes payment + attempt + outbox.
+- Completion failures retry the write only (`commitAfterProcessor`). Provider calls use `charge:<paymentId>` / `refund:<paymentId>` idempotency keys.
+- Inbox is still a `messageId` completion flag, not claimed in the prepare transaction.
+- Payment-service unit (27) and integration (6) tests pass. ADR-0002 documents the split.
+
+#### Follow-up
+
+- A real PSP adapter must forward the idempotency key so a crash after a successful provider call does not double-charge.
+- Same two-phase split should be copied by inventory/shipping when they get provider or other I/O side effects.
+
+### TASK-028 - DIST-16 payment-service charge and refund handlers
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** DIST-16
+**Started:** 2026-08-18
+**Last updated:** 2026-08-18
+
+#### Goal
+
+Implement payment-service Kafka charge and refund handlers with inbox/outbox idempotency, bounded backoff, and dual dead-letter path (table + `dist.deadletter.payments`).
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/adr/0002-use-outbox-pattern.md
+/docs/adr/README.md
+/docs/architecture.md
+/docs/api-contracts.md
+/docs/kafka-topic-conventions.md
+/docs/service-building-guide.md
+/packages/contracts/index.ts
+/packages/contracts/messages/order-service-workflow.ts
+/packages/contracts/test/order-service-workflow.test.ts
+/packages/kafka/index.ts
+/packages/kafka/README.md
+/packages/kafka/test/topic-definitions.test.ts
+/apps/payment-service
+/tests/test-suite.ts
+```
+
+#### Outcome
+
+- Bootstrapped `payment-service` with Fastify, Drizzle, health/ready, and Kafka consumer/outbox publisher.
+- Charge and refund commands are handled idempotently via inbox/outbox; poison/exhausted retries go to `dead_letter_events` and `dist.deadletter.payments`.
+- Added refund and dead-letter catalog types plus `DEADLETTER_TOPICS`. Documented ADR-0002.
+- `pnpm test` passes (20 suites), including a Kafka round-trip when the local broker is up.
+
+#### Follow-up
+
+- DIST-17/18 can copy the payment-service messaging pattern for inventory and shipping.
+- A shared Kafka runtime package can wait until the second service exists.
+- Saga orchestrator still owns step timeouts, command retries, and compensation.
 
 ### TASK-027 - Deduplicate order interfaces and complete response contracts
 
