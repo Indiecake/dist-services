@@ -75,8 +75,7 @@ async function insertUnpublishedCharge(
 }
 
 test('concurrent outbox claims return disjoint row ids', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service outbox integration test.');
@@ -115,8 +114,7 @@ test('concurrent outbox claims return disjoint row ids', async (t) => {
 });
 
 test('an expired outbox lease can be reclaimed by another instance', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service outbox integration test.');
@@ -152,8 +150,7 @@ test('an expired outbox lease can be reclaimed by another instance', async (t) =
 });
 
 test('markOutboxPublished from a non-owner is a no-op', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service outbox integration test.');

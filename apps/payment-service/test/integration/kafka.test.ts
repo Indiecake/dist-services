@@ -52,8 +52,7 @@ async function isKafkaAvailable(brokers: string[]): Promise<boolean> {
 }
 
 test('Kafka round-trip publishes payment.charged on dist.event.payments', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
   const brokers = (process.env.KAFKA_BOOTSTRAP_SERVERS ?? 'localhost:9092').split(',');
 
   if (!(await isPostgresAvailable(databaseUrl))) {
