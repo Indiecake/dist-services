@@ -44,8 +44,7 @@ const silentLogger = {
 };
 
 test('charge command persists payment, attempt, inbox, and outbox together', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service integration test.');
@@ -93,8 +92,7 @@ test('charge command persists payment, attempt, inbox, and outbox together', asy
 });
 
 test('redelivery of the same messageId does not create another payment event', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service integration test.');
@@ -146,8 +144,7 @@ test('redelivery of the same messageId does not create another payment event', a
 });
 
 test('refund command publishes payment.refunded after a successful charge', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service integration test.');
@@ -206,8 +203,7 @@ test('refund command publishes payment.refunded after a successful charge', asyn
 });
 
 test('invalid envelope is written to dead_letter_events and the DLQ outbox topic', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service integration test.');

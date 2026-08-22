@@ -43,8 +43,7 @@ const validOrderRequest = {
 };
 
 test('POST /orders creates a pending order when Postgres is available', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping order-service integration test.');
@@ -79,8 +78,7 @@ test('POST /orders creates a pending order when Postgres is available', async (t
 });
 
 test('POST /orders returns validation errors', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping order-service integration test.');
@@ -108,8 +106,7 @@ test('POST /orders returns validation errors', async (t) => {
 });
 
 test('GET /ready reports readiness when Postgres is available', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping order-service integration test.');

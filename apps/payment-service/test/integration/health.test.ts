@@ -22,8 +22,7 @@ async function isPostgresAvailable(databaseUrl: string): Promise<boolean> {
 }
 
 test('GET /health returns ok when service boots against Postgres', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping payment-service integration test.');

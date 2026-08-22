@@ -35,8 +35,7 @@ const validOrderRequest = {
 };
 
 test('gateway forwards order creation to order-service end-to-end', async (t) => {
-  const databaseUrl =
-    process.env.DATABASE_URL ?? 'postgres://platform:platform@localhost:5432/platform';
+  const databaseUrl = `${process.env.DATABASE_URL}`;
 
   if (!(await isPostgresAvailable(databaseUrl))) {
     t.skip('Postgres is not available; skipping gateway e2e integration test.');
