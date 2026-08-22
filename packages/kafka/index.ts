@@ -1,5 +1,5 @@
 const TOPIC_NAMESPACE = 'dist';
-const TOPIC_KINDS = ['command', 'event'] as const;
+const TOPIC_KINDS = ['command', 'event', 'deadletter'] as const;
 const TOPIC_DOMAINS = ['orders', 'payments', 'inventory', 'shipping', 'saga'] as const;
 
 type TopicKind = (typeof TOPIC_KINDS)[number];
@@ -33,6 +33,13 @@ const EVENT_TOPICS = Object.freeze({
   saga: buildTopicName('event', 'saga')
 });
 
+const DEADLETTER_TOPICS = Object.freeze({
+  orders: buildTopicName('deadletter', 'orders'),
+  payments: buildTopicName('deadletter', 'payments'),
+  inventory: buildTopicName('deadletter', 'inventory'),
+  shipping: buildTopicName('deadletter', 'shipping')
+});
+
 const TOPIC_PARTITION_KEYS = Object.freeze({
   [COMMAND_TOPICS.orders]: 'orderId',
   [COMMAND_TOPICS.payments]: 'orderId',
@@ -42,12 +49,17 @@ const TOPIC_PARTITION_KEYS = Object.freeze({
   [EVENT_TOPICS.payments]: 'orderId',
   [EVENT_TOPICS.inventory]: 'orderId',
   [EVENT_TOPICS.shipping]: 'orderId',
-  [EVENT_TOPICS.saga]: 'sagaId'
+  [EVENT_TOPICS.saga]: 'sagaId',
+  [DEADLETTER_TOPICS.orders]: 'orderId',
+  [DEADLETTER_TOPICS.payments]: 'orderId',
+  [DEADLETTER_TOPICS.inventory]: 'orderId',
+  [DEADLETTER_TOPICS.shipping]: 'orderId'
 } as Record<string, TopicPartitionKey>);
 
 const TOPIC_CATALOG = Object.freeze({
   commands: COMMAND_TOPICS,
-  events: EVENT_TOPICS
+  events: EVENT_TOPICS,
+  deadletters: DEADLETTER_TOPICS
 });
 
 function getTopicPartitionKey(topicName: string): TopicPartitionKey {
@@ -66,6 +78,7 @@ export {
   TOPIC_DOMAINS,
   COMMAND_TOPICS,
   EVENT_TOPICS,
+  DEADLETTER_TOPICS,
   TOPIC_CATALOG,
   TOPIC_PARTITION_KEYS,
   buildTopicName,

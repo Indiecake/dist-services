@@ -4,7 +4,7 @@ export default defineConfig({
   dialect: 'postgresql',
   schema: './src/db/schema.ts',
   out: './database/migrations',
-  schemaFilter: ['orders_schema'],
+  schemaFilter: ['payments_schema'],
   dbCredentials: {
     url: databaseUrl
   }

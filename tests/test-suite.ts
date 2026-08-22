@@ -56,6 +56,28 @@ export const testSuites: readonly TestSuite[] = [
     label: 'api-gateway integration tests',
     path: 'apps/api-gateway/test/integration/orders.test.ts'
   },
+  {
+    label: 'payment-service unit tests',
+    path: 'apps/payment-service/test/unit/schema.test.ts',
+    runner: 'jest',
+    cwd: 'apps/payment-service'
+  },
+  {
+    label: 'payment-service integration tests',
+    path: 'apps/payment-service/test/integration/health.test.ts'
+  },
+  {
+    label: 'payment-service payments integration tests',
+    path: 'apps/payment-service/test/integration/payments.test.ts'
+  },
+  {
+    label: 'payment-service kafka integration tests',
+    path: 'apps/payment-service/test/integration/kafka.test.ts'
+  },
+  {
+    label: 'payment-service outbox integration tests',
+    path: 'apps/payment-service/test/integration/outbox.test.ts'
+  },
   { label: 'test suite registry', path: 'tests/run-all.test.ts' }
 ];
 

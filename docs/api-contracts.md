@@ -57,6 +57,33 @@ Base URL (local): `http://localhost:3010`
 The gateway forwards the same JSON request body to order-service. On success (201), it returns the public gateway response shape defined above. On failure (4xx/5xx), it passes through the downstream status code and { "error": "..." } body unchanged.
 
 
+## payment-service (DIST-16)
+
+Base URL (local): `http://localhost:3002`
+
+Payment charge and refund are Kafka-only. The HTTP surface is limited to liveness and readiness.
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/health` | Liveness |
+| GET | `/ready` | Readiness; includes Postgres connectivity |
+
+Commands consumed from `dist.command.payments`:
+
+- `payment.charge.requested`
+- `payment.refund.requested`
+
+Events published to `dist.event.payments`:
+
+- `payment.charged`
+- `payment.failed`
+- `payment.refunded`
+- `payment.refund.failed`
+
+Poison or exhausted-retry commands are published to `dist.deadletter.payments` as `payment.deadlettered`.
+
+Kafka payload shapes live in `packages/contracts/messages/order-service-workflow.ts`.
+
 ## order-service
 
 Base URL (local): `http://localhost:3001`

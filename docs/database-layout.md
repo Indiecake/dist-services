@@ -23,6 +23,15 @@ Local development uses a single PostgreSQL instance with one schema per stateful
 - Cross-service joins are not allowed in service runtime code.
 - Shared database utilities may exist in `packages/database`, but they must not bypass schema ownership.
 
+## Outbox publisher rows
+
+Service-owned `outbox_events` tables used by Kafka participants include:
+
+- `claimed_by` — poller instance id holding a live claim, or null
+- `lease_until` — when the claim expires, compared with SQL `now()`
+
+Competing pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED` and a time-bounded lease. See [ADR-0002](./adr/0002-use-outbox-pattern.md).
+
 ## Migration layout
 
 - Bootstrap SQL for local schema creation lives in `infra/postgres/init/001-create-service-schemas.sql`.

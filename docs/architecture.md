@@ -102,6 +102,7 @@ payments
 payment_attempts
 outbox_events
 inbox_events
+dead_letter_events
 ```
 
 Responsibilities:
@@ -110,11 +111,15 @@ Responsibilities:
 - Reject payments when validation or provider rules fail
 - Refund payments during compensation
 - Publish payment result events
+- Dead-letter poison or exhausted-retry commands
+- Call the payment processor outside the inbox/outbox transaction; persist the result atomically with inbox and outbox
+
+There is no HTTP API for charging or refunding. The service consumes Kafka commands and publishes Kafka events.
 
 Reactive to:
 
-- `OrderCreated`
-- `RefundPaymentRequested`
+- `ChargePaymentCommand` (`payment.charge.requested` on `dist.command.payments`)
+- `RefundPaymentCommand` (`payment.refund.requested` on `dist.command.payments`)
 
 Events published:
 
@@ -122,6 +127,7 @@ Events published:
 - `PaymentFailed`
 - `PaymentRefunded`
 - `RefundPaymentFailed`
+- `PaymentDeadlettered` (on `dist.deadletter.payments`)
 
 ### `inventory-service`
 

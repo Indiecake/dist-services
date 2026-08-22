@@ -11,12 +11,18 @@ import {
 test('exports stable order-service message type constants', () => {
   assert.equal(MESSAGE_TYPES.ORDER_CREATED, 'order.created');
   assert.equal(MESSAGE_TYPES.PAYMENT_CHARGE_REQUESTED, 'payment.charge.requested');
+  assert.equal(MESSAGE_TYPES.PAYMENT_REFUND_REQUESTED, 'payment.refund.requested');
+  assert.equal(MESSAGE_TYPES.PAYMENT_REFUNDED, 'payment.refunded');
+  assert.equal(MESSAGE_TYPES.PAYMENT_REFUND_FAILED, 'payment.refund.failed');
+  assert.equal(MESSAGE_TYPES.PAYMENT_DEADLETTERED, 'payment.deadlettered');
   assert.equal(MESSAGE_TYPES.SHIPPING_FAILED, 'shipping.failed');
 });
 
 test('maps architecture PascalCase names to envelope type strings', () => {
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.OrderCreated, 'order.created');
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.PaymentCharged, 'payment.charged');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.PaymentRefunded, 'payment.refunded');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.PaymentDeadlettered, 'payment.deadlettered');
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.ShipmentCreated, 'shipping.created');
 });
 

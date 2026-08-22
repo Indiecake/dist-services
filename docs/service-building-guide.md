@@ -78,7 +78,8 @@ Public and internal HTTP shapes for DIST-3 are documented in [api-contracts.md](
 | Reference skeleton | ADRs, Drizzle bootstrap, `/health`, Jest layout | Business routes, `/ready`, Kafka |
 | DIST-15 | Repositories, `POST/GET /orders`, `/ready` | Kafka, outbox |
 | DIST-14 | Gateway forwarding, correlation ids | Auth (DIST-38) |
-| DIST-16–18 | Message catalog, Kafka consumers | Saga wiring |
+| DIST-16 | Payment-service Kafka consumers, inbox/outbox, backoff, dead-letter topic | Saga wiring |
+| DIST-17–18 | Inventory and shipping Kafka consumers | Saga wiring |
 | DIST-39 | Shared trace propagation helpers | — |
 | DIST-38 | Gateway auth middleware | — |
 
