@@ -16,6 +16,7 @@ export interface CreatePaymentServiceOptions {
   processor?: PaymentProcessor;
   retryDelaysMs?: readonly number[];
   outboxPollIntervalMs?: number;
+  outboxLeaseMs?: number;
 }
 
 export interface PaymentServiceRuntime {
@@ -68,7 +69,8 @@ export async function createPaymentService(
       processor,
       logger,
       retryDelaysMs: options.retryDelaysMs,
-      outboxPollIntervalMs: options.outboxPollIntervalMs
+      outboxPollIntervalMs: options.outboxPollIntervalMs,
+      outboxLeaseMs: options.outboxLeaseMs
     });
     await messaging.start();
     logger.info('Payment service messaging started');

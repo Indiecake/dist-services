@@ -1,4 +1,4 @@
-import { eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import {
@@ -50,11 +50,25 @@ export interface ProcessResult {
   messageType?: string;
 }
 
+export const DEFAULT_OUTBOX_CLAIM_LIMIT = 50;
+export const DEFAULT_OUTBOX_LEASE_MS = 30_000;
+
 export interface OutboxRecord {
   id: string;
   topic: string;
   partitionKey: string;
   envelope: MessageEnvelope;
+}
+
+export interface ClaimUnpublishedOutboxInput {
+  instanceId: string;
+  limit?: number;
+  leaseMs?: number;
+}
+
+export interface OutboxClaimOwner {
+  id: string;
+  instanceId: string;
 }
 
 export interface DeadLetterInput {
@@ -99,6 +113,20 @@ function extractOrderId(payload: unknown): string | null {
   }
 
   return null;
+}
+
+function toOutboxRecord(row: {
+  id: string;
+  topic: string;
+  partitionKey: string;
+  envelope: MessageEnvelope;
+}): OutboxRecord {
+  return {
+    id: row.id,
+    topic: row.topic,
+    partitionKey: row.partitionKey,
+    envelope: row.envelope
+  };
 }
 
 function extractCorrelationId(value: unknown): string | null {
@@ -247,7 +275,7 @@ export class PaymentsRepository {
     }
   }
 
-  async listUnpublishedOutbox(limit = 50): Promise<OutboxRecord[]> {
+  async listUnpublishedOutbox(limit = DEFAULT_OUTBOX_CLAIM_LIMIT): Promise<OutboxRecord[]> {
     const rows = await this.db
       .select()
       .from(outboxEvents)
@@ -255,19 +283,84 @@ export class PaymentsRepository {
       .orderBy(outboxEvents.createdAt)
       .limit(limit);
 
-    return rows.map((row) => ({
-      id: row.id,
-      topic: row.topic,
-      partitionKey: row.partitionKey,
-      envelope: row.envelope
-    }));
+    return rows.map(toOutboxRecord);
   }
 
-  async markOutboxPublished(id: string): Promise<void> {
+  async claimUnpublishedOutbox(input: ClaimUnpublishedOutboxInput): Promise<OutboxRecord[]> {
+    const limit = input.limit ?? DEFAULT_OUTBOX_CLAIM_LIMIT;
+    const leaseMs = input.leaseMs ?? DEFAULT_OUTBOX_LEASE_MS;
+
+    return this.db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(outboxEvents)
+        .where(
+          and(
+            isNull(outboxEvents.publishedAt),
+            or(isNull(outboxEvents.leaseUntil), sql`${outboxEvents.leaseUntil} < now()`)
+          )
+        )
+        .orderBy(outboxEvents.createdAt)
+        .limit(limit)
+        .for('update', { skipLocked: true });
+
+      if (rows.length === 0) {
+        return [];
+      }
+
+      await tx
+        .update(outboxEvents)
+        .set({
+          claimedBy: input.instanceId,
+          leaseUntil: sql`now() + (${leaseMs} * interval '1 millisecond')`
+        })
+        .where(inArray(outboxEvents.id, rows.map((row) => row.id)));
+
+      return rows.map(toOutboxRecord);
+    });
+  }
+
+  async markOutboxPublished(input: OutboxClaimOwner): Promise<void> {
     await this.db
       .update(outboxEvents)
-      .set({ publishedAt: new Date().toISOString() })
-      .where(eq(outboxEvents.id, id));
+      .set({
+        publishedAt: sql`now()`,
+        claimedBy: null,
+        leaseUntil: null
+      })
+      .where(
+        and(
+          eq(outboxEvents.id, input.id),
+          eq(outboxEvents.claimedBy, input.instanceId),
+          isNull(outboxEvents.publishedAt)
+        )
+      );
+  }
+
+  async releaseOutboxClaim(input: OutboxClaimOwner): Promise<void> {
+    await this.db
+      .update(outboxEvents)
+      .set({
+        claimedBy: null,
+        leaseUntil: null
+      })
+      .where(
+        and(
+          eq(outboxEvents.id, input.id),
+          eq(outboxEvents.claimedBy, input.instanceId),
+          isNull(outboxEvents.publishedAt)
+        )
+      );
+  }
+
+  async releaseAllOutboxClaims(instanceId: string): Promise<void> {
+    await this.db
+      .update(outboxEvents)
+      .set({
+        claimedBy: null,
+        leaseUntil: null
+      })
+      .where(and(eq(outboxEvents.claimedBy, instanceId), isNull(outboxEvents.publishedAt)));
   }
 
   private async prepareCharge(command: PaymentChargeRequestedPayloadV1): Promise<boolean> {

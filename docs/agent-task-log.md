@@ -32,6 +32,7 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-030 | Lease-based outbox poller for competing payment-service instances | 2026-08-21 | cursor-agent | DIST-16 |
 | TASK-029 | Keep payment processor calls outside the outbox transaction | 2026-08-19 | cursor-agent | DIST-16 |
 | TASK-028 | DIST-16 payment-service charge and refund handlers | 2026-08-18 | cursor-agent | DIST-16 |
 | TASK-027 | Deduplicate order interfaces and complete response contracts | 2026-08-11 | cursor-agent | N/A |
@@ -64,6 +65,47 @@ Agents must update this file before starting work, while working, and after fini
 ---
 
 ## Detailed Task Notes
+
+### TASK-030 - Lease-based outbox poller for competing payment-service instances
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** DIST-16
+**Started:** 2026-08-21
+**Last updated:** 2026-08-21
+
+#### Goal
+
+Claim unpublished outbox rows with `FOR UPDATE SKIP LOCKED` and a time-bounded lease so multiple payment-service instances cannot produce the same row at once. Document this as the standard outbox publisher pattern.
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/adr/0002-use-outbox-pattern.md
+/docs/database-layout.md
+/apps/payment-service/src/db/schema.ts
+/apps/payment-service/src/db/payments-repository.ts
+/apps/payment-service/src/messaging/kafka-runtime.ts
+/apps/payment-service/src/server.ts
+/apps/payment-service/database/migrations
+/apps/payment-service/test/unit/schema.test.ts
+/apps/payment-service/test/unit/kafka-runtime.test.ts
+/apps/payment-service/test/integration/outbox.test.ts
+/apps/payment-service/README.md
+/tests/test-suite.ts
+```
+
+#### Outcome
+
+- `outbox_events` now has `claimed_by` and `lease_until`. Pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED`, mark published only as the claim owner, and release on produce failure or shutdown.
+- `listUnpublishedOutbox` remains a read-only inspect helper. Inbox duplicate checks are unchanged and still do not cover the publish path.
+- Payment-service unit (29) and integration (9) tests pass, including concurrent disjoint claims, expired-lease reclaim, and non-owner mark no-op.
+
+#### Follow-up
+
+- DIST-22 can extract a shared outbox publisher after a second service copies this lease claim.
+- Downstream event consumers must stay idempotent on event `messageId`; crash-after-send can still republish after lease expiry.
 
 ### TASK-029 - Keep payment processor calls outside the outbox transaction
 

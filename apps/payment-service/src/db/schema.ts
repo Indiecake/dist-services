@@ -1,4 +1,6 @@
+import { sql } from 'drizzle-orm';
 import {
+  index,
   integer,
   jsonb,
   pgSchema,
@@ -54,16 +56,24 @@ export const inboxEvents = paymentsSchema.table('inbox_events', {
 });
 
 export const outboxEvents = paymentsSchema.table('outbox_events', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  messageId: text('message_id').notNull(),
-  topic: text('topic').notNull(),
-  partitionKey: text('partition_key').notNull(),
-  envelope: jsonb('envelope').$type<MessageEnvelope>().notNull(),
-  publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
-  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-    .notNull()
-    .defaultNow()
-});
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: text('message_id').notNull(),
+    topic: text('topic').notNull(),
+    partitionKey: text('partition_key').notNull(),
+    envelope: jsonb('envelope').$type<MessageEnvelope>().notNull(),
+    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
+    claimedBy: text('claimed_by'),
+    leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow()
+  },
+  (table) => [
+    index('outbox_events_unpublished_created_at_idx')
+      .on(table.createdAt)
+      .where(sql`${table.publishedAt} is null`)
+  ]
+);
 
 export const deadLetterEvents = paymentsSchema.table('dead_letter_events', {
   messageId: text('message_id').primaryKey(),

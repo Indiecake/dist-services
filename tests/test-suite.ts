@@ -74,6 +74,10 @@ export const testSuites: readonly TestSuite[] = [
     label: 'payment-service kafka integration tests',
     path: 'apps/payment-service/test/integration/kafka.test.ts'
   },
+  {
+    label: 'payment-service outbox integration tests',
+    path: 'apps/payment-service/test/integration/outbox.test.ts'
+  },
   { label: 'test suite registry', path: 'tests/run-all.test.ts' }
 ];
 

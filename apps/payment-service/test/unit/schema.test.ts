@@ -21,6 +21,8 @@ describe('payment-service schema', () => {
     expect(paymentServiceTables.paymentAttempts).toBeDefined();
     expect(paymentServiceTables.inboxEvents).toBeDefined();
     expect(paymentServiceTables.outboxEvents).toBeDefined();
+    expect(paymentServiceTables.outboxEvents.claimedBy).toBeDefined();
+    expect(paymentServiceTables.outboxEvents.leaseUntil).toBeDefined();
     expect(paymentServiceTables.deadLetterEvents).toBeDefined();
   });
 });

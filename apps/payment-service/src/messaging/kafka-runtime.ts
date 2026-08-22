@@ -1,15 +1,62 @@
+import { randomUUID } from 'node:crypto';
+
 import { Kafka, type Consumer, type Producer } from 'kafkajs';
 
 import { COMMAND_TOPICS } from '@services-sandbox/kafka';
 
-import type { PaymentsRepository } from '../db/payments-repository.ts';
+import {
+  DEFAULT_OUTBOX_LEASE_MS,
+  type OutboxRecord,
+  type PaymentsRepository
+} from '../db/payments-repository.ts';
 import type { PaymentProcessor } from '../domain/processor.ts';
 import { SERVICE_NAME } from '../domain/types.ts';
 import { handlePaymentCommand, type PaymentLogger } from './command-handler.ts';
 
+export { DEFAULT_OUTBOX_LEASE_MS };
+
 export interface KafkaRuntime {
   start: () => Promise<void>;
   stop: () => Promise<void>;
+}
+
+export async function drainClaimedOutbox(input: {
+  repository: Pick<
+    PaymentsRepository,
+    'claimUnpublishedOutbox' | 'markOutboxPublished' | 'releaseOutboxClaim'
+  >;
+  send: (record: OutboxRecord) => Promise<void>;
+  instanceId: string;
+  logger: PaymentLogger;
+  leaseMs?: number;
+  limit?: number;
+}): Promise<void> {
+  const claimed = await input.repository.claimUnpublishedOutbox({
+    instanceId: input.instanceId,
+    leaseMs: input.leaseMs,
+    limit: input.limit
+  });
+
+  for (const record of claimed) {
+    try {
+      await input.send(record);
+      await input.repository.markOutboxPublished({
+        id: record.id,
+        instanceId: input.instanceId
+      });
+    } catch (error) {
+      await input.repository.releaseOutboxClaim({
+        id: record.id,
+        instanceId: input.instanceId
+      });
+      input.logger.warn('Outbox publish failed; will retry', {
+        topic: record.topic,
+        messageId: record.envelope.messageId,
+        reason: error instanceof Error ? error.message : 'publish failed'
+      });
+      break;
+    }
+  }
 }
 
 export function createKafkaRuntime(input: {
@@ -19,6 +66,7 @@ export function createKafkaRuntime(input: {
   logger: PaymentLogger;
   retryDelaysMs?: readonly number[];
   outboxPollIntervalMs?: number;
+  outboxLeaseMs?: number;
 }): KafkaRuntime {
   const kafka = new Kafka({
     clientId: SERVICE_NAME,
@@ -31,8 +79,11 @@ export function createKafkaRuntime(input: {
   });
   const producer: Producer = kafka.producer({ allowAutoTopicCreation: true });
   const pollIntervalMs = input.outboxPollIntervalMs ?? 500;
+  const leaseMs = input.outboxLeaseMs ?? DEFAULT_OUTBOX_LEASE_MS;
+  const instanceId = randomUUID();
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let publishing = false;
+  let inFlight: Promise<void> | null = null;
 
   async function publishOutbox(): Promise<void> {
     if (publishing) {
@@ -42,10 +93,12 @@ export function createKafkaRuntime(input: {
     publishing = true;
 
     try {
-      const unpublished = await input.repository.listUnpublishedOutbox();
-
-      for (const record of unpublished) {
-        try {
+      await drainClaimedOutbox({
+        repository: input.repository,
+        instanceId,
+        logger: input.logger,
+        leaseMs,
+        send: async (record) => {
           await producer.send({
             topic: record.topic,
             messages: [
@@ -55,16 +108,8 @@ export function createKafkaRuntime(input: {
               }
             ]
           });
-          await input.repository.markOutboxPublished(record.id);
-        } catch (error) {
-          input.logger.warn('Outbox publish failed; will retry', {
-            topic: record.topic,
-            messageId: record.envelope.messageId,
-            reason: error instanceof Error ? error.message : 'publish failed'
-          });
-          break;
         }
-      }
+      });
     } catch (error) {
       input.logger.warn('Outbox poll failed; will retry', {
         reason: error instanceof Error ? error.message : 'poll failed'
@@ -72,6 +117,16 @@ export function createKafkaRuntime(input: {
     } finally {
       publishing = false;
     }
+  }
+
+  function triggerPublish(): void {
+    const run = publishOutbox();
+    inFlight = run;
+    void run.finally(() => {
+      if (inFlight === run) {
+        inFlight = null;
+      }
+    });
   }
 
   return {
@@ -114,9 +169,9 @@ export function createKafkaRuntime(input: {
       });
 
       pollTimer = setInterval(() => {
-        void publishOutbox();
+        triggerPublish();
       }, pollIntervalMs);
-      void publishOutbox();
+      triggerPublish();
     },
     async stop() {
       if (pollTimer) {
@@ -124,6 +179,11 @@ export function createKafkaRuntime(input: {
         pollTimer = null;
       }
 
+      if (inFlight) {
+        await inFlight.catch(() => undefined);
+      }
+
+      await input.repository.releaseAllOutboxClaims(instanceId);
       await consumer.disconnect();
       await producer.disconnect();
     }

@@ -11,6 +11,7 @@ Implemented for DIST-16:
 - Kafka consumer on `dist.command.payments` for `payment.charge.requested` and `payment.refund.requested`
 - Result events on `dist.event.payments` (`payment.charged`, `payment.failed`, `payment.refunded`, `payment.refund.failed`)
 - Inbox/outbox persistence in `payments_schema`
+- Outbox poller claims unpublished rows with a time-bounded lease so multiple instances do not double-produce
 - Payment processor calls run outside the outbox transaction; completion writes retry without repeating the provider call
 - Bounded backoff for transient failures
 - Dead-letter table plus `dist.deadletter.payments` for poison or exhausted-retry commands

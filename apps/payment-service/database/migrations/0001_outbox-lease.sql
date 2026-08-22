@@ -1,0 +1,3 @@
+ALTER TABLE "payments_schema"."outbox_events" ADD COLUMN "claimed_by" text;--> statement-breakpoint
+ALTER TABLE "payments_schema"."outbox_events" ADD COLUMN "lease_until" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "outbox_events_unpublished_created_at_idx" ON "payments_schema"."outbox_events" USING btree ("created_at") WHERE "payments_schema"."outbox_events"."published_at" is null;
