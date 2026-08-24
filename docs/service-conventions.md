@@ -50,6 +50,7 @@ This document defines the default conventions for deployable services in this re
 - `SERVICE_NAME` must match the service folder name.
 - Environment validation should fail fast during startup rather than allowing partial boot.
 - Secrets must not be committed; use `.env.example` for placeholders only.
+- Tests and local tooling must not hardcode `DATABASE_URL`.
 - Additional service-specific variables should follow uppercase snake case naming.
 
 ## Logging

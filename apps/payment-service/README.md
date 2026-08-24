@@ -10,11 +10,9 @@ Implemented for DIST-16:
 - `GET /ready` readiness endpoint (Postgres connectivity)
 - Kafka consumer on `dist.command.payments` for `payment.charge.requested` and `payment.refund.requested`
 - Result events on `dist.event.payments` (`payment.charged`, `payment.failed`, `payment.refunded`, `payment.refund.failed`)
-- Inbox/outbox persistence in `payments_schema`
-- Outbox poller claims unpublished rows with a time-bounded lease so multiple instances do not double-produce
+- Inbox/outbox/dead-letter tables composed from `@services-sandbox/kafka/schema`
+- Kafka consumer, lease outbox poller, bounded backoff, and dual DLQ from `@services-sandbox/kafka/runtime`
 - Payment processor calls run outside the outbox transaction; completion writes retry without repeating the provider call
-- Bounded backoff for transient failures
-- Dead-letter table plus `dist.deadletter.payments` for poison or exhausted-retry commands
 
 Saga wiring is out of scope. Tests (and later the saga orchestrator) publish commands directly.
 
@@ -72,7 +70,7 @@ There is no HTTP API for charging or refunding payments.
 
 - [Service Building Guide](../../docs/service-building-guide.md)
 - [API Contracts](../../docs/api-contracts.md)
-- [Kafka Topic Conventions](../../docs/kafka-topic-conventions.md)
+- [Kafka package](../../packages/kafka/README.md)
 - [ADR-0002 Outbox and Inbox](../../docs/adr/0002-use-outbox-pattern.md)
 - [ADR-0004 Service Runtime Stack](../../docs/adr/0004-service-runtime-stack.md)
 - [ADR-0005 Internal Service Layering](../../docs/adr/0005-service-internal-layering.md)

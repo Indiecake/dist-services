@@ -19,6 +19,10 @@ export const testSuites: readonly TestSuite[] = [
     path: 'packages/contracts/test/create-order.test.ts'
   },
   { label: 'kafka package', path: 'packages/kafka/test/topic-definitions.test.ts' },
+  { label: 'kafka schema factories', path: 'packages/kafka/test/schema.test.ts' },
+  { label: 'kafka backoff', path: 'packages/kafka/test/backoff.test.ts' },
+  { label: 'kafka command handler', path: 'packages/kafka/test/command-handler.test.ts' },
+  { label: 'kafka outbox drain', path: 'packages/kafka/test/kafka-runtime.test.ts' },
   { label: 'telemetry package', path: 'packages/telemetry/test/telemetry.test.ts' },
   { label: 'platform foundation checks', path: 'tests/checks/platform-foundation.test.ts' },
   { label: 'database layout checks', path: 'tests/checks/database-layout.test.ts' },

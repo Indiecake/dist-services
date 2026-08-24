@@ -67,6 +67,17 @@ Integration tests that require Postgres should detect connectivity and **skip gr
 
 Grafana uses host port 3000 via Docker Compose; do not assign application services to 3000 locally.
 
+## Kafka participant runtime
+
+Kafka command consumers use `@services-sandbox/kafka`:
+
+1. Compose `createInboxEventsTable`, `createOutboxEventsTable`, and `createDeadLetterEventsTable` into the service `pgSchema`.
+2. Claim inbox with `claimInboxEvent` in the same transaction as the business write.
+3. Start `createKafkaParticipantRuntime` with the service command topic, a domain `handleCommand` callback, and `createOutboxStore`.
+4. Route poison/exhausted commands through `handleCommandMessage` so dual DLQ (table + dead-letter topic) stays consistent.
+
+Do not copy `payment-service` messaging files into inventory or shipping. `payment-service` is the reference consumer of this package after DIST-22.
+
 ## HTTP contracts
 
 Public and internal HTTP shapes for DIST-3 are documented in [api-contracts.md](./api-contracts.md).
@@ -79,7 +90,8 @@ Public and internal HTTP shapes for DIST-3 are documented in [api-contracts.md](
 | DIST-15 | Repositories, `POST/GET /orders`, `/ready` | Kafka, outbox |
 | DIST-14 | Gateway forwarding, correlation ids | Auth (DIST-38) |
 | DIST-16 | Payment-service Kafka consumers, inbox/outbox, backoff, dead-letter topic | Saga wiring |
-| DIST-17–18 | Inventory and shipping Kafka consumers | Saga wiring |
+| DIST-22 | Shared Kafka participant runtime in `@services-sandbox/kafka` | Inventory/shipping domain |
+| DIST-17–18 | Inventory and shipping Kafka consumers using the DIST-22 runtime | Saga wiring |
 | DIST-39 | Shared trace propagation helpers | — |
 | DIST-38 | Gateway auth middleware | — |
 

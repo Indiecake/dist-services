@@ -1,4 +1,4 @@
-import { DEFAULT_RETRY_DELAYS_MS, withBoundedBackoff } from '../messaging/backoff.ts';
+import { DEFAULT_RETRY_DELAYS_MS, withBoundedBackoff } from '@services-sandbox/kafka/runtime';
 import { TransientProcessingError } from './errors.ts';
 
 export async function commitAfterProcessor<TProcessorResult, TCommitResult>(input: {

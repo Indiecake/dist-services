@@ -143,7 +143,21 @@ importers:
         specifier: ^25.9.3
         version: 25.9.4
 
-  packages/kafka: {}
+  packages/kafka:
+    dependencies:
+      '@services-sandbox/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.22.0)
+      kafkajs:
+        specifier: ^2.2.4
+        version: 2.2.4
+    devDependencies:
+      '@types/node':
+        specifier: ^25.9.3
+        version: 25.9.4
 
   packages/telemetry: {}
 

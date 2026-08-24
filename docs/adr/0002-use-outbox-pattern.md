@@ -83,8 +83,8 @@ The saga orchestrator, not the participant service, owns:
 
 ## Consequences
 
-- DIST-16 implements inbox, outbox, backoff, `dead_letter_events`, and `dist.deadletter.payments` inside `payment-service`.
-- Payment-service outbox pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED` and a time-bounded lease so multiple instances do not produce the same row concurrently.
+- DIST-16 implemented inbox, outbox, backoff, `dead_letter_events`, and `dist.deadletter.payments` inside `payment-service`.
+- DIST-22 extracts that participant runtime into `@services-sandbox/kafka` (`schema` factories + `runtime`). Services own schema-local tables by composing the factories; they do not share a database schema.
+- Payment-service (and later inventory/shipping) outbox pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED` and a time-bounded lease so multiple instances do not produce the same row concurrently.
 - Payment processor calls run outside the outbox transaction. Inbox is claimed only when the result is written, so a crash cannot produce "inbox duplicate, customer charged, no result event."
-- Later workflow services should copy this pattern rather than introducing HTTP charge/refund APIs.
-- A shared Kafka producer/consumer package is still deferred until a second service proves the helpers should be extracted (DIST-22).
+- Workflow services must not introduce HTTP charge/refund/reserve APIs. DIST-17 and DIST-18 consume the shared runtime instead of copying payment-service messaging.

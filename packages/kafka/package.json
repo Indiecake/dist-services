@@ -5,6 +5,16 @@
   "type": "module",
   "main": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./schema": "./schema.ts",
+    "./runtime": "./runtime.ts"
+  },
+  "dependencies": {
+    "@services-sandbox/contracts": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3"
   }
 }

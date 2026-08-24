@@ -1,15 +1,10 @@
-import { sql } from 'drizzle-orm';
-import {
-  index,
-  integer,
-  jsonb,
-  pgSchema,
-  text,
-  timestamp,
-  uuid
-} from 'drizzle-orm/pg-core';
+import { integer, pgSchema, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-import type { MessageEnvelope } from '@services-sandbox/contracts';
+import {
+  createDeadLetterEventsTable,
+  createInboxEventsTable,
+  createOutboxEventsTable
+} from '@services-sandbox/kafka/schema';
 
 export const PAYMENT_SCHEMA_NAME = 'payments_schema';
 
@@ -47,44 +42,9 @@ export const paymentAttempts = paymentsSchema.table('payment_attempts', {
     .defaultNow()
 });
 
-export const inboxEvents = paymentsSchema.table('inbox_events', {
-  messageId: text('message_id').primaryKey(),
-  messageType: text('message_type').notNull(),
-  processedAt: timestamp('processed_at', { withTimezone: true, mode: 'string' })
-    .notNull()
-    .defaultNow()
-});
-
-export const outboxEvents = paymentsSchema.table('outbox_events', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    messageId: text('message_id').notNull(),
-    topic: text('topic').notNull(),
-    partitionKey: text('partition_key').notNull(),
-    envelope: jsonb('envelope').$type<MessageEnvelope>().notNull(),
-    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
-    claimedBy: text('claimed_by'),
-    leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .notNull()
-      .defaultNow()
-  },
-  (table) => [
-    index('outbox_events_unpublished_created_at_idx')
-      .on(table.createdAt)
-      .where(sql`${table.publishedAt} is null`)
-  ]
-);
-
-export const deadLetterEvents = paymentsSchema.table('dead_letter_events', {
-  messageId: text('message_id').primaryKey(),
-  originalTopic: text('original_topic').notNull(),
-  envelope: jsonb('envelope').notNull(),
-  reason: text('reason').notNull(),
-  attempts: integer('attempts').notNull(),
-  failedAt: timestamp('failed_at', { withTimezone: true, mode: 'string' })
-    .notNull()
-    .defaultNow()
-});
+export const inboxEvents = createInboxEventsTable(paymentsSchema);
+export const outboxEvents = createOutboxEventsTable(paymentsSchema);
+export const deadLetterEvents = createDeadLetterEventsTable(paymentsSchema);
 
 export const paymentServiceTables = {
   payments,
