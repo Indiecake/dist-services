@@ -1,17 +1,24 @@
-import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
-import {
-  createEventEnvelope,
-  createFollowUpEnvelope,
-  type MessageEnvelope
-} from '@services-sandbox/contracts';
+import { createFollowUpEnvelope, type MessageEnvelope } from '@services-sandbox/contracts';
 import { EVENT_TOPICS, DEADLETTER_TOPICS } from '@services-sandbox/kafka';
 import {
   MESSAGE_TYPES,
   type PaymentChargeRequestedPayloadV1,
   type PaymentRefundRequestedPayloadV1
 } from '@services-sandbox/contracts/messages/order-service-workflow';
+import {
+  claimInboxEvent,
+  createOutboxStore,
+  recordDeadLetterEvent,
+  type ClaimUnpublishedOutboxInput,
+  type CommandDispatchResult,
+  type DeadLetterInput,
+  type OutboxClaimOwner,
+  type OutboxRecord,
+  type OutboxStore
+} from '@services-sandbox/kafka/runtime';
 
 import {
   createPendingChargePayment,
@@ -42,42 +49,19 @@ import {
   payments
 } from './schema.ts';
 
-export interface ProcessResult {
-  status: 'processed' | 'duplicate';
-  workflowStep?: string;
+export interface ProcessResult extends CommandDispatchResult {
   orderId?: string;
   paymentId?: string;
-  messageType?: string;
 }
 
-export const DEFAULT_OUTBOX_CLAIM_LIMIT = 50;
-export const DEFAULT_OUTBOX_LEASE_MS = 30_000;
-
-export interface OutboxRecord {
-  id: string;
-  topic: string;
-  partitionKey: string;
-  envelope: MessageEnvelope;
-}
-
-export interface ClaimUnpublishedOutboxInput {
-  instanceId: string;
-  limit?: number;
-  leaseMs?: number;
-}
-
-export interface OutboxClaimOwner {
-  id: string;
-  instanceId: string;
-}
-
-export interface DeadLetterInput {
-  originalTopic: string;
-  rawValue: unknown;
-  parentEnvelope: MessageEnvelope | null;
-  reason: string;
-  attempts: number;
-}
+export {
+  DEFAULT_OUTBOX_CLAIM_LIMIT,
+  DEFAULT_OUTBOX_LEASE_MS,
+  type ClaimUnpublishedOutboxInput,
+  type DeadLetterInput,
+  type OutboxClaimOwner,
+  type OutboxRecord
+} from '@services-sandbox/kafka/runtime';
 
 function wrapTransient(error: unknown): never {
   if (error instanceof InvalidPaymentCommandError) {
@@ -102,51 +86,26 @@ function toSnapshot(row: typeof payments.$inferSelect): PaymentSnapshot {
   };
 }
 
-function extractOrderId(payload: unknown): string | null {
+function extractPaymentId(payload: unknown): string | undefined {
   if (typeof payload !== 'object' || payload === null) {
-    return null;
+    return undefined;
   }
 
-  const orderId = (payload as { orderId?: unknown }).orderId;
-  if (typeof orderId === 'string' && orderId.trim() !== '') {
-    return orderId;
+  const paymentId = (payload as { paymentId?: unknown }).paymentId;
+  if (typeof paymentId === 'string' && paymentId.trim() !== '') {
+    return paymentId;
   }
 
-  return null;
+  return undefined;
 }
 
-function toOutboxRecord(row: {
-  id: string;
-  topic: string;
-  partitionKey: string;
-  envelope: MessageEnvelope;
-}): OutboxRecord {
-  return {
-    id: row.id,
-    topic: row.topic,
-    partitionKey: row.partitionKey,
-    envelope: row.envelope
-  };
-}
-
-function extractCorrelationId(value: unknown): string | null {
-  if (typeof value !== 'object' || value === null) {
-    return null;
-  }
-
-  const correlationId = (value as { correlationId?: unknown }).correlationId;
-  if (typeof correlationId === 'string' && correlationId.trim() !== '') {
-    return correlationId;
-  }
-
-  return null;
-}
-
-export class PaymentsRepository {
+export class PaymentsRepository implements OutboxStore {
   private readonly db: NodePgDatabase;
+  private readonly outbox: ReturnType<typeof createOutboxStore>;
 
   constructor(db: NodePgDatabase) {
     this.db = db;
+    this.outbox = createOutboxStore({ db, outboxEvents });
   }
 
   async processCharge(
@@ -200,167 +159,43 @@ export class PaymentsRepository {
   }
 
   async recordDeadLetter(input: DeadLetterInput): Promise<ProcessResult> {
-    const failedAt = new Date().toISOString();
-    const originalMessageId =
-      input.parentEnvelope?.messageId ??
-      (typeof input.rawValue === 'object' &&
-      input.rawValue !== null &&
-      'messageId' in input.rawValue &&
-      typeof (input.rawValue as { messageId?: unknown }).messageId === 'string'
-        ? (input.rawValue as { messageId: string }).messageId
-        : `unparseable-${failedAt}`);
+    const paymentId = extractPaymentId(input.parentEnvelope?.payload ?? input.rawValue);
 
-    const orderId = extractOrderId(input.parentEnvelope?.payload ?? input.rawValue);
-    const correlationId = extractCorrelationId(input.rawValue);
-    const deadLetterPayload = {
+    return recordDeadLetterEvent({
+      db: this.db,
+      deadLetterEvents,
+      outboxEvents,
       originalTopic: input.originalTopic,
-      originalEnvelope: input.parentEnvelope ?? input.rawValue,
+      rawValue: input.rawValue,
+      parentEnvelope: input.parentEnvelope,
       reason: input.reason,
       attempts: input.attempts,
-      failedAt,
-      ...(orderId ? { orderId } : {})
-    };
-
-    const deadLetterEnvelope = input.parentEnvelope
-      ? createFollowUpEnvelope(input.parentEnvelope, {
-          type: MESSAGE_TYPES.PAYMENT_DEADLETTERED,
-          source: SERVICE_NAME,
-          payload: deadLetterPayload
-        })
-      : createEventEnvelope({
-          type: MESSAGE_TYPES.PAYMENT_DEADLETTERED,
-          source: SERVICE_NAME,
-          correlationId: correlationId ?? 'unknown',
-          payload: deadLetterPayload
-        });
-
-    const partitionKey = orderId ?? deadLetterEnvelope.messageId;
-
-    try {
-      return await this.db.transaction(async (tx) => {
-        const [existing] = await tx
-          .select({ messageId: deadLetterEvents.messageId })
-          .from(deadLetterEvents)
-          .where(eq(deadLetterEvents.messageId, originalMessageId))
-          .limit(1);
-
-        if (existing) {
-          return { status: 'duplicate' as const };
-        }
-
-        await tx.insert(deadLetterEvents).values({
-          messageId: originalMessageId,
-          originalTopic: input.originalTopic,
-          envelope: input.parentEnvelope ?? input.rawValue,
-          reason: input.reason,
-          attempts: input.attempts,
-          failedAt
-        });
-
-        await tx.insert(outboxEvents).values({
-          messageId: deadLetterEnvelope.messageId,
-          topic: DEADLETTER_TOPICS.payments,
-          partitionKey,
-          envelope: deadLetterEnvelope
-        });
-
-        return {
-          status: 'processed' as const,
-          workflowStep: 'payment_deadlettered',
-          messageType: MESSAGE_TYPES.PAYMENT_DEADLETTERED
-        };
-      });
-    } catch (error) {
-      wrapTransient(error);
-    }
-  }
-
-  async listUnpublishedOutbox(limit = DEFAULT_OUTBOX_CLAIM_LIMIT): Promise<OutboxRecord[]> {
-    const rows = await this.db
-      .select()
-      .from(outboxEvents)
-      .where(isNull(outboxEvents.publishedAt))
-      .orderBy(outboxEvents.createdAt)
-      .limit(limit);
-
-    return rows.map(toOutboxRecord);
-  }
-
-  async claimUnpublishedOutbox(input: ClaimUnpublishedOutboxInput): Promise<OutboxRecord[]> {
-    const limit = input.limit ?? DEFAULT_OUTBOX_CLAIM_LIMIT;
-    const leaseMs = input.leaseMs ?? DEFAULT_OUTBOX_LEASE_MS;
-
-    return this.db.transaction(async (tx) => {
-      const rows = await tx
-        .select()
-        .from(outboxEvents)
-        .where(
-          and(
-            isNull(outboxEvents.publishedAt),
-            or(isNull(outboxEvents.leaseUntil), sql`${outboxEvents.leaseUntil} < now()`)
-          )
-        )
-        .orderBy(outboxEvents.createdAt)
-        .limit(limit)
-        .for('update', { skipLocked: true });
-
-      if (rows.length === 0) {
-        return [];
-      }
-
-      await tx
-        .update(outboxEvents)
-        .set({
-          claimedBy: input.instanceId,
-          leaseUntil: sql`now() + (${leaseMs} * interval '1 millisecond')`
-        })
-        .where(inArray(outboxEvents.id, rows.map((row) => row.id)));
-
-      return rows.map(toOutboxRecord);
+      deadLetterType: MESSAGE_TYPES.PAYMENT_DEADLETTERED,
+      source: SERVICE_NAME,
+      deadLetterTopic: DEADLETTER_TOPICS.payments,
+      extraPayload: paymentId ? { paymentId } : undefined,
+      workflowStep: 'payment_deadlettered'
     });
   }
 
-  async markOutboxPublished(input: OutboxClaimOwner): Promise<void> {
-    await this.db
-      .update(outboxEvents)
-      .set({
-        publishedAt: sql`now()`,
-        claimedBy: null,
-        leaseUntil: null
-      })
-      .where(
-        and(
-          eq(outboxEvents.id, input.id),
-          eq(outboxEvents.claimedBy, input.instanceId),
-          isNull(outboxEvents.publishedAt)
-        )
-      );
+  listUnpublishedOutbox(limit?: number): Promise<OutboxRecord[]> {
+    return this.outbox.listUnpublishedOutbox(limit);
   }
 
-  async releaseOutboxClaim(input: OutboxClaimOwner): Promise<void> {
-    await this.db
-      .update(outboxEvents)
-      .set({
-        claimedBy: null,
-        leaseUntil: null
-      })
-      .where(
-        and(
-          eq(outboxEvents.id, input.id),
-          eq(outboxEvents.claimedBy, input.instanceId),
-          isNull(outboxEvents.publishedAt)
-        )
-      );
+  claimUnpublishedOutbox(input: ClaimUnpublishedOutboxInput): Promise<OutboxRecord[]> {
+    return this.outbox.claimUnpublishedOutbox(input);
   }
 
-  async releaseAllOutboxClaims(instanceId: string): Promise<void> {
-    await this.db
-      .update(outboxEvents)
-      .set({
-        claimedBy: null,
-        leaseUntil: null
-      })
-      .where(and(eq(outboxEvents.claimedBy, instanceId), isNull(outboxEvents.publishedAt)));
+  markOutboxPublished(input: OutboxClaimOwner): Promise<void> {
+    return this.outbox.markOutboxPublished(input);
+  }
+
+  releaseOutboxClaim(input: OutboxClaimOwner): Promise<void> {
+    return this.outbox.releaseOutboxClaim(input);
+  }
+
+  releaseAllOutboxClaims(instanceId: string): Promise<void> {
+    return this.outbox.releaseAllOutboxClaims(instanceId);
   }
 
   private async prepareCharge(command: PaymentChargeRequestedPayloadV1): Promise<boolean> {
@@ -503,22 +338,7 @@ export class PaymentsRepository {
     tx: NodePgDatabase,
     envelope: MessageEnvelope
   ): Promise<boolean> {
-    const [existing] = await tx
-      .select({ messageId: inboxEvents.messageId })
-      .from(inboxEvents)
-      .where(eq(inboxEvents.messageId, envelope.messageId))
-      .limit(1);
-
-    if (existing) {
-      return true;
-    }
-
-    await tx.insert(inboxEvents).values({
-      messageId: envelope.messageId,
-      messageType: envelope.type
-    });
-
-    return false;
+    return claimInboxEvent(tx, inboxEvents, envelope);
   }
 
   private async findPayment(

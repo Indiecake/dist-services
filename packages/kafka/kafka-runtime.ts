@@ -2,18 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import { Kafka, type Consumer, type Producer } from 'kafkajs';
 
-import { COMMAND_TOPICS } from '@services-sandbox/kafka';
-
-import {
-  DEFAULT_OUTBOX_LEASE_MS,
-  type OutboxRecord,
-  type PaymentsRepository
-} from '../db/payments-repository.ts';
-import type { PaymentProcessor } from '../domain/processor.ts';
-import { SERVICE_NAME } from '../domain/types.ts';
-import { handlePaymentCommand, type PaymentLogger } from './command-handler.ts';
-
-export { DEFAULT_OUTBOX_LEASE_MS };
+import type { ParticipantLogger } from './command-handler.ts';
+import { DEFAULT_OUTBOX_LEASE_MS, type OutboxRecord, type OutboxStore } from './outbox-store.ts';
 
 export interface KafkaRuntime {
   start: () => Promise<void>;
@@ -21,17 +11,14 @@ export interface KafkaRuntime {
 }
 
 export async function drainClaimedOutbox(input: {
-  repository: Pick<
-    PaymentsRepository,
-    'claimUnpublishedOutbox' | 'markOutboxPublished' | 'releaseOutboxClaim'
-  >;
+  store: OutboxStore;
   send: (record: OutboxRecord) => Promise<void>;
   instanceId: string;
-  logger: PaymentLogger;
+  logger: ParticipantLogger;
   leaseMs?: number;
   limit?: number;
 }): Promise<void> {
-  const claimed = await input.repository.claimUnpublishedOutbox({
+  const claimed = await input.store.claimUnpublishedOutbox({
     instanceId: input.instanceId,
     leaseMs: input.leaseMs,
     limit: input.limit
@@ -40,12 +27,12 @@ export async function drainClaimedOutbox(input: {
   for (const record of claimed) {
     try {
       await input.send(record);
-      await input.repository.markOutboxPublished({
+      await input.store.markOutboxPublished({
         id: record.id,
         instanceId: input.instanceId
       });
     } catch (error) {
-      await input.repository.releaseOutboxClaim({
+      await input.store.releaseOutboxClaim({
         id: record.id,
         instanceId: input.instanceId
       });
@@ -59,22 +46,23 @@ export async function drainClaimedOutbox(input: {
   }
 }
 
-export function createKafkaRuntime(input: {
+export function createKafkaParticipantRuntime(input: {
+  serviceName: string;
   brokers: string[];
-  repository: PaymentsRepository;
-  processor: PaymentProcessor;
-  logger: PaymentLogger;
-  retryDelaysMs?: readonly number[];
+  commandTopic: string;
+  handleCommand: (input: { rawValue: unknown; originalTopic: string }) => Promise<unknown>;
+  outboxStore: OutboxStore;
+  logger: ParticipantLogger;
   outboxPollIntervalMs?: number;
   outboxLeaseMs?: number;
 }): KafkaRuntime {
   const kafka = new Kafka({
-    clientId: SERVICE_NAME,
+    clientId: input.serviceName,
     brokers: input.brokers
   });
 
   const consumer: Consumer = kafka.consumer({
-    groupId: SERVICE_NAME,
+    groupId: input.serviceName,
     allowAutoTopicCreation: true
   });
   const producer: Producer = kafka.producer({ allowAutoTopicCreation: true });
@@ -94,7 +82,7 @@ export function createKafkaRuntime(input: {
 
     try {
       await drainClaimedOutbox({
-        repository: input.repository,
+        store: input.outboxStore,
         instanceId,
         logger: input.logger,
         leaseMs,
@@ -133,7 +121,7 @@ export function createKafkaRuntime(input: {
     async start() {
       await producer.connect();
       await consumer.connect();
-      await consumer.subscribe({ topic: COMMAND_TOPICS.payments, fromBeginning: true });
+      await consumer.subscribe({ topic: input.commandTopic, fromBeginning: true });
 
       await consumer.run({
         autoCommit: false,
@@ -147,15 +135,7 @@ export function createKafkaRuntime(input: {
             rawValue = rawText;
           }
 
-          await handlePaymentCommand(
-            {
-              repository: input.repository,
-              processor: input.processor,
-              logger: input.logger,
-              retryDelaysMs: input.retryDelaysMs
-            },
-            { rawValue, originalTopic: topic }
-          );
+          await input.handleCommand({ rawValue, originalTopic: topic });
 
           await heartbeat();
           await consumer.commitOffsets([
@@ -183,7 +163,7 @@ export function createKafkaRuntime(input: {
         await inFlight.catch(() => undefined);
       }
 
-      await input.repository.releaseAllOutboxClaims(instanceId);
+      await input.outboxStore.releaseAllOutboxClaims(instanceId);
       await consumer.disconnect();
       await producer.disconnect();
     }

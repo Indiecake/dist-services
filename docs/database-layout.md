@@ -30,7 +30,7 @@ Service-owned `outbox_events` tables used by Kafka participants include:
 - `claimed_by` — poller instance id holding a live claim, or null
 - `lease_until` — when the claim expires, compared with SQL `now()`
 
-Competing pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED` and a time-bounded lease. See [ADR-0002](./adr/0002-use-outbox-pattern.md).
+Competing pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED` and a time-bounded lease. Shared Drizzle factories live in `@services-sandbox/kafka/schema`; each service still owns the tables in its schema. See [ADR-0002](./adr/0002-use-outbox-pattern.md).
 
 ## Migration layout
 

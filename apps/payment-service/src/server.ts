@@ -1,6 +1,11 @@
 import Fastify from 'fastify';
 
 import { loadServiceConfig } from '@services-sandbox/config';
+import { COMMAND_TOPICS } from '@services-sandbox/kafka';
+import {
+  createKafkaParticipantRuntime,
+  type KafkaRuntime
+} from '@services-sandbox/kafka/runtime';
 import { createLogger, shouldLogHttpRequest } from '@services-sandbox/telemetry';
 
 import { createDbClient } from './db/client.ts';
@@ -8,7 +13,7 @@ import { runMigrations } from './db/migrate.ts';
 import { PaymentsRepository } from './db/payments-repository.ts';
 import { createSimulatedPaymentProcessor, type PaymentProcessor } from './domain/processor.ts';
 import { SERVICE_NAME } from './domain/types.ts';
-import { createKafkaRuntime, type KafkaRuntime } from './messaging/kafka-runtime.ts';
+import { handlePaymentCommand } from './messaging/command-handler.ts';
 import { registerHealthRoutes } from './routes/health.ts';
 
 export interface CreatePaymentServiceOptions {
@@ -22,6 +27,7 @@ export interface CreatePaymentServiceOptions {
 export interface PaymentServiceRuntime {
   app: ReturnType<typeof Fastify>;
   repository: PaymentsRepository;
+  logger: ReturnType<typeof createLogger>;
   close: () => Promise<void>;
 }
 
@@ -63,12 +69,22 @@ export async function createPaymentService(
   const enableMessaging = options.enableMessaging ?? false;
 
   if (enableMessaging) {
-    messaging = createKafkaRuntime({
+    messaging = createKafkaParticipantRuntime({
+      serviceName: SERVICE_NAME,
       brokers: config.kafkaBootstrapServers,
-      repository,
-      processor,
+      commandTopic: COMMAND_TOPICS.payments,
+      handleCommand: (command) =>
+        handlePaymentCommand(
+          {
+            repository,
+            processor,
+            logger,
+            retryDelaysMs: options.retryDelaysMs
+          },
+          command
+        ),
+      outboxStore: repository,
       logger,
-      retryDelaysMs: options.retryDelaysMs,
       outboxPollIntervalMs: options.outboxPollIntervalMs,
       outboxLeaseMs: options.outboxLeaseMs
     });
@@ -84,7 +100,7 @@ export async function createPaymentService(
     await pool.end();
   }
 
-  return { app, repository, close };
+  return { app, repository, logger, close };
 }
 
 export async function startPaymentService(): Promise<PaymentServiceRuntime> {
@@ -96,8 +112,10 @@ export async function startPaymentService(): Promise<PaymentServiceRuntime> {
     port: config.port
   });
 
-  const logger = createLogger({ serviceName: config.serviceName });
-  logger.info('Payment service listening', { port: config.port, serviceName: SERVICE_NAME });
+  runtime.logger.info('Payment service listening', {
+    port: config.port,
+    serviceName: SERVICE_NAME
+  });
 
   return runtime;
 }

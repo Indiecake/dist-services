@@ -32,6 +32,8 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-032 | Fix kafka dispatch generic and payment-service logger reuse | 2026-08-23 | cursor-agent | DIST-22 |
+| TASK-031 | Shared Kafka participant runtime | 2026-08-23 | cursor-agent | DIST-22 |
 | TASK-030 | Lease-based outbox poller for competing payment-service instances | 2026-08-21 | cursor-agent | DIST-16 |
 | TASK-029 | Keep payment processor calls outside the outbox transaction | 2026-08-19 | cursor-agent | DIST-16 |
 | TASK-028 | DIST-16 payment-service charge and refund handlers | 2026-08-18 | cursor-agent | DIST-16 |
@@ -66,6 +68,79 @@ Agents must update this file before starting work, while working, and after fini
 
 ## Detailed Task Notes
 
+### TASK-032 - Fix kafka dispatch generic and payment-service logger reuse
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** DIST-22
+**Started:** 2026-08-23
+**Last updated:** 2026-08-23
+
+#### Goal
+
+Fix `handleCommandMessage` generic inference against service `ProcessResult` types, and reuse a single payment-service logger instance.
+
+#### Expected files to change
+
+```text
+/packages/kafka/command-handler.ts
+/packages/kafka/test/command-handler.test.ts
+/apps/payment-service/src/db/payments-repository.ts
+/apps/payment-service/src/server.ts
+/docs/agent-task-log.md
+```
+
+#### Outcome
+
+- Removed `[key: string]: unknown` from `CommandDispatchResult` so named service result interfaces can extend the generic constraint.
+- `ProcessResult` now extends `CommandDispatchResult`.
+- `createPaymentService` returns its logger; `startPaymentService` reuses it instead of calling `createLogger` again.
+- Kafka and payment-service unit tests pass.
+
+#### Follow-up
+
+- Order-service and api-gateway still create a second logger in `start*Service`.
+
+### TASK-031 - Shared Kafka participant runtime
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** DIST-22
+**Started:** 2026-08-23
+**Last updated:** 2026-08-23
+
+#### Goal
+
+Extract payment-service Kafka participant machinery into `@services-sandbox/kafka` (schema factories, lease outbox poller, consumer loop, inbox helper, backoff, dual DLQ) and migrate payment-service onto it. Pause DIST-17 until this lands.
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/adr/0002-use-outbox-pattern.md
+/docs/database-layout.md
+/docs/service-building-guide.md
+/packages/kafka
+/packages/README.md
+/apps/payment-service
+/tests/test-suite.ts
+/pnpm-lock.yaml
+```
+
+#### Outcome
+
+- `@services-sandbox/kafka/schema` factories create inbox, lease outbox, and dead-letter tables bound to a service `pgSchema`.
+- `@services-sandbox/kafka/runtime` provides `claimInboxEvent`, `createOutboxStore`, `handleCommandMessage`, `drainClaimedOutbox`, and `createKafkaParticipantRuntime`.
+- `payment-service` uses the package; duplicated consumer/outbox SQL helpers were removed.
+- DIST-17 and DIST-18 are blocked on DIST-22. DIST-23/24 AC is delivered by this package.
+- `pnpm test` passes (25 suites). Payment integration tests skip when Postgres is down.
+
+#### Follow-up
+
+- Resume DIST-17: inventory-service should import the shared runtime and add only stock/reservation domain.
+- Close DIST-23 and DIST-24 when DIST-22 is marked Done in Jira.
+
+---
 ### TASK-030 - Lease-based outbox poller for competing payment-service instances
 
 **Status:** DONE
