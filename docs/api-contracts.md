@@ -84,6 +84,33 @@ Poison or exhausted-retry commands are published to `dist.deadletter.payments` a
 
 Kafka payload shapes live in `packages/contracts/messages/order-service-workflow.ts`.
 
+## inventory-service (DIST-17)
+
+Base URL (local): `http://localhost:3003`
+
+Inventory reserve and release are Kafka-only. The HTTP surface is limited to liveness and readiness.
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/health` | Liveness |
+| GET | `/ready` | Readiness; includes Postgres connectivity |
+
+Commands consumed from `dist.command.inventory`:
+
+- `inventory.reserve.requested`
+- `inventory.release.requested`
+
+Events published to `dist.event.inventory`:
+
+- `inventory.reserved`
+- `inventory.reservation.failed`
+- `inventory.released`
+- `inventory.release.failed`
+
+Poison or exhausted-retry commands are published to `dist.deadletter.inventory` as `inventory.deadlettered`.
+
+Kafka payload shapes live in `packages/contracts/messages/order-service-workflow.ts`.
+
 ## order-service
 
 Base URL (local): `http://localhost:3001`

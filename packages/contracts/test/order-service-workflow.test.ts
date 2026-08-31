@@ -15,6 +15,11 @@ test('exports stable order-service message type constants', () => {
   assert.equal(MESSAGE_TYPES.PAYMENT_REFUNDED, 'payment.refunded');
   assert.equal(MESSAGE_TYPES.PAYMENT_REFUND_FAILED, 'payment.refund.failed');
   assert.equal(MESSAGE_TYPES.PAYMENT_DEADLETTERED, 'payment.deadlettered');
+  assert.equal(MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED, 'inventory.reserve.requested');
+  assert.equal(MESSAGE_TYPES.INVENTORY_RELEASE_REQUESTED, 'inventory.release.requested');
+  assert.equal(MESSAGE_TYPES.INVENTORY_RELEASED, 'inventory.released');
+  assert.equal(MESSAGE_TYPES.INVENTORY_RELEASE_FAILED, 'inventory.release.failed');
+  assert.equal(MESSAGE_TYPES.INVENTORY_DEADLETTERED, 'inventory.deadlettered');
   assert.equal(MESSAGE_TYPES.SHIPPING_FAILED, 'shipping.failed');
 });
 
@@ -23,6 +28,11 @@ test('maps architecture PascalCase names to envelope type strings', () => {
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.PaymentCharged, 'payment.charged');
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.PaymentRefunded, 'payment.refunded');
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.PaymentDeadlettered, 'payment.deadlettered');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.ReserveInventoryCommand, 'inventory.reserve.requested');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.ReleaseInventoryRequested, 'inventory.release.requested');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.InventoryReleased, 'inventory.released');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.InventoryReleaseFailed, 'inventory.release.failed');
+  assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.InventoryDeadlettered, 'inventory.deadlettered');
   assert.equal(ARCHITECTURE_EVENT_TYPE_MAP.ShipmentCreated, 'shipping.created');
 });
 

@@ -82,6 +82,32 @@ export const testSuites: readonly TestSuite[] = [
     label: 'payment-service outbox integration tests',
     path: 'apps/payment-service/test/integration/outbox.test.ts'
   },
+  {
+    label: 'inventory-service unit tests',
+    path: 'apps/inventory-service/test/unit/schema.test.ts',
+    runner: 'jest',
+    cwd: 'apps/inventory-service'
+  },
+  {
+    label: 'inventory-service integration tests',
+    path: 'apps/inventory-service/test/integration/health.test.ts'
+  },
+  {
+    label: 'inventory-service inventory integration tests',
+    path: 'apps/inventory-service/test/integration/inventory.test.ts'
+  },
+  {
+    label: 'inventory-service kafka integration tests',
+    path: 'apps/inventory-service/test/integration/kafka.test.ts'
+  },
+  {
+    label: 'inventory-service outbox integration tests',
+    path: 'apps/inventory-service/test/integration/outbox.test.ts'
+  },
+  {
+    label: 'inventory-service seed integration tests',
+    path: 'apps/inventory-service/test/integration/seed.test.ts'
+  },
   { label: 'test suite registry', path: 'tests/run-all.test.ts' }
 ];
 

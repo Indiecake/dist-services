@@ -16,6 +16,10 @@ export const MESSAGE_TYPES = Object.freeze({
   INVENTORY_RESERVE_REQUESTED: 'inventory.reserve.requested',
   INVENTORY_RESERVED: 'inventory.reserved',
   INVENTORY_RESERVATION_FAILED: 'inventory.reservation.failed',
+  INVENTORY_RELEASE_REQUESTED: 'inventory.release.requested',
+  INVENTORY_RELEASED: 'inventory.released',
+  INVENTORY_RELEASE_FAILED: 'inventory.release.failed',
+  INVENTORY_DEADLETTERED: 'inventory.deadlettered',
   SHIPPING_CREATE_REQUESTED: 'shipping.create.requested',
   SHIPPING_CREATED: 'shipping.created',
   SHIPPING_FAILED: 'shipping.failed'
@@ -100,6 +104,33 @@ export interface InventoryReservationFailedPayloadV1 {
   reason: string;
 }
 
+export interface InventoryReleaseRequestedPayloadV1 {
+  orderId: string;
+  reservationId: string;
+}
+
+export interface InventoryReleasedPayloadV1 {
+  orderId: string;
+  reservationId: string;
+  releasedAt: string;
+}
+
+export interface InventoryReleaseFailedPayloadV1 {
+  orderId: string;
+  reservationId: string;
+  reason: string;
+}
+
+export interface InventoryDeadletteredPayloadV1 {
+  originalTopic: string;
+  originalEnvelope: unknown;
+  reason: string;
+  attempts: number;
+  failedAt: string;
+  orderId?: string;
+  reservationId?: string;
+}
+
 export interface ShippingCreateRequestedPayloadV1 {
   orderId: string;
   shipmentId: string;
@@ -133,8 +164,13 @@ export const ARCHITECTURE_EVENT_TYPE_MAP = Object.freeze({
   PaymentRefunded: MESSAGE_TYPES.PAYMENT_REFUNDED,
   RefundPaymentFailed: MESSAGE_TYPES.PAYMENT_REFUND_FAILED,
   PaymentDeadlettered: MESSAGE_TYPES.PAYMENT_DEADLETTERED,
+  ReserveInventoryCommand: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,
   InventoryReserved: MESSAGE_TYPES.INVENTORY_RESERVED,
   InventoryReservationFailed: MESSAGE_TYPES.INVENTORY_RESERVATION_FAILED,
+  ReleaseInventoryRequested: MESSAGE_TYPES.INVENTORY_RELEASE_REQUESTED,
+  InventoryReleased: MESSAGE_TYPES.INVENTORY_RELEASED,
+  InventoryReleaseFailed: MESSAGE_TYPES.INVENTORY_RELEASE_FAILED,
+  InventoryDeadlettered: MESSAGE_TYPES.INVENTORY_DEADLETTERED,
   ShipmentCreated: MESSAGE_TYPES.SHIPPING_CREATED,
   ShipmentFailed: MESSAGE_TYPES.SHIPPING_FAILED
 } as const);

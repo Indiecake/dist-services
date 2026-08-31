@@ -36,6 +36,7 @@ Workflow:
 2. Run `pnpm exec drizzle-kit generate --name <description>` from the service directory.
 3. Commit generated SQL under `database/migrations/`.
 4. Call the migrator during server bootstrap before accepting traffic.
+5. Keep local catalog or fixture data in a `db:seed` script, not in generated migrations.
 
 Do not maintain parallel hand-written SQL migrations once Drizzle schema exists.
 
@@ -76,7 +77,7 @@ Kafka command consumers use `@services-sandbox/kafka`:
 3. Start `createKafkaParticipantRuntime` with the service command topic, a domain `handleCommand` callback, and `createOutboxStore`.
 4. Route poison/exhausted commands through `handleCommandMessage` so dual DLQ (table + dead-letter topic) stays consistent.
 
-Do not copy `payment-service` messaging files into inventory or shipping. `payment-service` is the reference consumer of this package after DIST-22.
+Do not copy `payment-service` messaging files into inventory or shipping. `payment-service` and `inventory-service` are the reference consumers of this package after DIST-22.
 
 ## HTTP contracts
 

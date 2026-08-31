@@ -32,6 +32,8 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-034 | Add inventory-service catalog seeder | 2026-08-29 | cursor-agent | N/A |
+| TASK-033 | DIST-17 inventory-service reservation handlers | 2026-08-29 | cursor-agent | DIST-17 |
 | TASK-032 | Fix kafka dispatch generic and payment-service logger reuse | 2026-08-23 | cursor-agent | DIST-22 |
 | TASK-031 | Shared Kafka participant runtime | 2026-08-23 | cursor-agent | DIST-22 |
 | TASK-030 | Lease-based outbox poller for competing payment-service instances | 2026-08-21 | cursor-agent | DIST-16 |
@@ -67,6 +69,79 @@ Agents must update this file before starting work, while working, and after fini
 ---
 
 ## Detailed Task Notes
+
+### TASK-034 - Add inventory-service catalog seeder
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** N/A
+**Started:** 2026-08-29
+**Last updated:** 2026-08-29
+
+#### Goal
+
+Add an idempotent local catalog seeder for inventory-service so `products` and `stock` rows exist for the SKUs used in order/API examples.
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/database-layout.md
+/docs/local-development.md
+/docs/service-building-guide.md
+/apps/inventory-service
+/tests/test-suite.ts
+```
+
+#### Outcome
+
+- Added `pnpm db:seed` which migrates then inserts `sku-1` (100 on hand) and `sku-2` (50 on hand).
+- `ensure` mode is idempotent and does not overwrite existing on-hand or reserved quantities. Test helpers still use `reset`.
+- Unit and integration tests cover catalog validation, ensure vs reset, and default SKU idempotency.
+
+#### Follow-up
+
+- Copy `apps/inventory-service/.env.example` to `.env` before running `db:seed` locally.
+
+### TASK-033 - DIST-17 inventory-service reservation handlers
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** DIST-17
+**Started:** 2026-08-29
+**Last updated:** 2026-08-29
+
+#### Goal
+
+Implement inventory-service Kafka reserve and release handlers on `@services-sandbox/kafka`, with real stock tables, all-or-nothing reservations, and fail-fast conditional stock updates.
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/architecture.md
+/docs/api-contracts.md
+/docs/kafka-topic-conventions.md
+/docs/database-layout.md
+/docs/service-building-guide.md
+/packages/contracts
+/packages/kafka/README.md
+/apps/inventory-service
+/tests/test-suite.ts
+/pnpm-lock.yaml
+```
+
+#### Outcome
+
+- Bootstrapped `inventory-service` with Fastify health/ready, Drizzle `inventory_schema`, and shared Kafka participant runtime.
+- Reserve and release commands are handled idempotently via inbox/outbox. Insufficient stock and unknown SKUs publish `inventory.reservation.failed`. Release missing/illegal status publishes `inventory.release.failed`.
+- Stock uses fail-fast conditional `UPDATE` with `lock_timeout = 0` so competing instances do not wait on a row-lock queue. Multi-item reserve is all-or-nothing via a savepoint.
+- Added inventory release and dead-letter catalog types. Docs treat inventory as a command consumer, not as reactive to `PaymentCharged`.
+
+#### Follow-up
+
+- DIST-18 shipping should consume `@services-sandbox/kafka` the same way.
+- Saga orchestrator still owns step timeouts, command retries, and compensation.
 
 ### TASK-032 - Fix kafka dispatch generic and payment-service logger reuse
 

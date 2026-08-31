@@ -139,8 +139,10 @@ Database tables:
 products
 stock
 inventory_reservations
+reservation_items
 outbox_events
 inbox_events
+dead_letter_events
 ```
 
 Responsibilities:
@@ -148,17 +150,22 @@ Responsibilities:
 - Reserve inventory for confirmed orders
 - Release inventory during compensation
 - Publish reservation result events
+- Dead-letter poison or exhausted-retry commands
+
+There is no HTTP API for reserving or releasing stock. The service consumes Kafka commands and publishes Kafka events.
 
 Reactive to:
 
-- `PaymentCharged`
-- `ReleaseInventoryRequested`
+- `ReserveInventoryCommand` (`inventory.reserve.requested` on `dist.command.inventory`)
+- `ReleaseInventoryCommand` (`inventory.release.requested` on `dist.command.inventory`)
 
 Events published:
 
 - `InventoryReserved`
 - `InventoryReservationFailed`
 - `InventoryReleased`
+- `InventoryReleaseFailed`
+- `InventoryDeadlettered` (on `dist.deadletter.inventory`)
 
 ### `shipping-service`
 

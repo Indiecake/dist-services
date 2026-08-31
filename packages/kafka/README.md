@@ -79,6 +79,6 @@ import {
 
 The service owns domain dispatch (charge vs refund, reserve vs release). The package does not open the domain transaction.
 
-`payment-service` is the first consumer of this runtime. DIST-17 inventory and DIST-18 shipping should use it instead of copying messaging code.
+`payment-service` and `inventory-service` consume this runtime. DIST-18 shipping should use it instead of copying messaging code.
 
 See `/docs/kafka-topic-conventions.md` and `/docs/adr/0002-use-outbox-pattern.md`.
