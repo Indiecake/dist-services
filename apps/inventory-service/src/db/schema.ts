@@ -1,0 +1,130 @@
+import { sql } from 'drizzle-orm';
+import {
+  integer,
+  pgSchema,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid
+} from 'drizzle-orm/pg-core';
+
+import {
+  createDeadLetterEventsTable,
+  createInboxEventsTable,
+  createOutboxEventsTable
+} from '@services-sandbox/kafka/schema';
+
+export const INVENTORY_SCHEMA_NAME = 'inventory_schema';
+
+export const inventorySchema = pgSchema(INVENTORY_SCHEMA_NAME);
+
+export const products = inventorySchema.table('products', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  priceCents: integer('price_cents').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+    .notNull()
+    .defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' })
+});
+
+export const categories = inventorySchema.table(
+  'categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' })
+  },
+  (table) => [
+    uniqueIndex('categories_active_name_idx')
+      .on(sql`lower(${table.name})`)
+      .where(sql`${table.deletedAt} is null`)
+  ]
+);
+
+export const productCategories = inventorySchema.table(
+  'product_categories',
+  {
+    productId: text('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' })
+  },
+  (table) => [
+    primaryKey({ columns: [table.productId, table.categoryId] })
+  ]
+);
+
+export const stock = inventorySchema.table('stock', {
+  productId: text('product_id')
+    .primaryKey()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  onHand: integer('on_hand').notNull(),
+  reservedQty: integer('reserved_qty').notNull().default(0)
+});
+
+export const inventoryReservations = inventorySchema.table('inventory_reservations', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').notNull().unique(),
+  status: text('status').notNull(),
+  failureReason: text('failure_reason'),
+  reservedAt: timestamp('reserved_at', { withTimezone: true, mode: 'string' }),
+  releasedAt: timestamp('released_at', { withTimezone: true, mode: 'string' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+    .notNull()
+    .defaultNow()
+});
+
+export const reservationItems = inventorySchema.table('reservation_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reservationId: text('reservation_id')
+    .notNull()
+    .references(() => inventoryReservations.id, { onDelete: 'cascade' }),
+  productId: text('product_id').notNull(),
+  quantity: integer('quantity').notNull()
+});
+
+export const inboxEvents = createInboxEventsTable(inventorySchema);
+export const outboxEvents = createOutboxEventsTable(inventorySchema);
+export const deadLetterEvents = createDeadLetterEventsTable(inventorySchema);
+
+export const inventoryServiceTables = {
+  products,
+  categories,
+  productCategories,
+  stock,
+  inventoryReservations,
+  reservationItems,
+  inboxEvents,
+  outboxEvents,
+  deadLetterEvents
+} as const;
+
+export const INVENTORY_TABLE_NAMES = Object.freeze([
+  'products',
+  'categories',
+  'product_categories',
+  'stock',
+  'inventory_reservations',
+  'reservation_items',
+  'inbox_events',
+  'outbox_events',
+  'dead_letter_events'
+] as const);

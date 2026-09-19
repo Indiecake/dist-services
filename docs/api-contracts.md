@@ -16,6 +16,17 @@ Base URL (local): `http://localhost:3010`
 | ------ | ---- | ----------- |
 | GET | `/health` | Liveness |
 | POST | `/orders` | Public order creation; validates input, assigns correlation/request ids, forwards to order-service |
+| GET | `/orders/:orderId` | Public order fetch; forwards to order-service |
+| GET | `/categories` | List active categories; forwards to inventory-service |
+| POST | `/categories` | Create a category |
+| GET | `/categories/:categoryId` | Fetch an active category |
+| PATCH | `/categories/:categoryId` | Partial category update |
+| DELETE | `/categories/:categoryId` | Soft-delete a category |
+| GET | `/products` | List active products; optional `?categoryId=` |
+| POST | `/products` | Create a product |
+| GET | `/products/:productId` | Fetch an active product |
+| PATCH | `/products/:productId` | Partial product update; `categoryIds` replaces the join set |
+| DELETE | `/products/:productId` | Soft-delete a product |
 
 ### POST `/orders`
 
@@ -81,6 +92,86 @@ Events published to `dist.event.payments`:
 - `payment.refund.failed`
 
 Poison or exhausted-retry commands are published to `dist.deadletter.payments` as `payment.deadlettered`.
+
+Kafka payload shapes live in `packages/contracts/messages/order-service-workflow.ts`.
+
+## inventory-service (DIST-17)
+
+Base URL (local): `http://localhost:3003`
+
+Inventory reserve and release are Kafka-only. Catalog maintenance is HTTP. Shared request/response types live in `packages/contracts/http/catalog.ts`.
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/health` | Liveness |
+| GET | `/ready` | Readiness; includes Postgres connectivity |
+| GET | `/categories` | List active categories |
+| POST | `/categories` | Create a category |
+| GET | `/categories/:categoryId` | Fetch an active category |
+| PATCH | `/categories/:categoryId` | Partial category update |
+| DELETE | `/categories/:categoryId` | Soft-delete a category (`204`) |
+| GET | `/products` | List active products; optional `?categoryId=` |
+| POST | `/products` | Create a product (also creates a stock row) |
+| GET | `/products/:productId` | Fetch an active product with categories and stock |
+| PATCH | `/products/:productId` | Partial product update; `categoryIds` replaces the join set |
+| DELETE | `/products/:productId` | Soft-delete a product (`204`) |
+
+### POST `/products`
+
+**Request**
+
+```json
+{
+  "id": "sku-1",
+  "name": "Widget",
+  "priceCents": 1299,
+  "description": "Standard widget",
+  "categoryIds": ["550e8400-e29b-41d4-a716-446655440000"],
+  "onHand": 100
+}
+```
+
+`id` and `categoryIds` are optional. `onHand` defaults to `0`. `priceCents` is a positive integer.
+
+**Success response — `201 Created`**
+
+```json
+{
+  "id": "sku-1",
+  "name": "Widget",
+  "priceCents": 1299,
+  "description": "Standard widget",
+  "onHand": 100,
+  "reservedQty": 0,
+  "categories": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "General",
+      "description": null,
+      "createdAt": "2026-09-19T12:00:00.000Z",
+      "updatedAt": "2026-09-19T12:00:00.000Z"
+    }
+  ],
+  "createdAt": "2026-09-19T12:00:00.000Z",
+  "updatedAt": "2026-09-19T12:00:00.000Z"
+}
+```
+
+Deleted rows are omitted from list and get endpoints (`404` if already deleted). Duplicate product ids or active category names return `409`. Unknown `categoryIds` return `400`.
+
+Commands consumed from `dist.command.inventory`:
+
+- `inventory.reserve.requested`
+- `inventory.release.requested`
+
+Events published to `dist.event.inventory`:
+
+- `inventory.reserved`
+- `inventory.reservation.failed`
+- `inventory.released`
+- `inventory.release.failed`
+
+Poison or exhausted-retry commands are published to `dist.deadletter.inventory` as `inventory.deadlettered`.
 
 Kafka payload shapes live in `packages/contracts/messages/order-service-workflow.ts`.
 

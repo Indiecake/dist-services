@@ -4,7 +4,12 @@ import {
   createOrderServiceClient,
   isOrderServiceOrderResponse
 } from '../../src/clients/order-service-client.ts';
+import { createInventoryServiceClient } from '../../src/clients/inventory-service-client.ts';
 import { toGatewayCreateOrderResponse } from '@services-sandbox/contracts/http/create-order';
+import {
+  isProductListResponse,
+  isProductResponse
+} from '@services-sandbox/contracts/http/catalog';
 
 function createTestOrderServiceClient(fetchImpl: typeof fetch) {
   const httpClient = createHttpClient({
@@ -29,11 +34,14 @@ describe('loadGatewayConfig', () => {
       KAFKA_BOOTSTRAP_SERVERS: 'localhost:9092',
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
       LOG_LEVEL: 'info',
-      ORDER_SERVICE_BASE_URL: 'http://localhost:3001/'
+      ORDER_SERVICE_BASE_URL: 'http://localhost:3001/',
+      INVENTORY_SERVICE_BASE_URL: 'http://localhost:3003/'
     });
 
     expect(config.orderServiceBaseUrl).toBe('http://localhost:3001');
     expect(config.orderServiceTimeoutMs).toBe(5000);
+    expect(config.inventoryServiceBaseUrl).toBe('http://localhost:3003');
+    expect(config.inventoryServiceTimeoutMs).toBe(5000);
   });
 });
 
@@ -189,5 +197,106 @@ describe('createOrderServiceClient', () => {
     expect(result.ok).toBe(false);
     expect(result.statusCode).toBe(502);
     expect(result.body).toEqual({ error: 'order-service unavailable' });
+  });
+});
+
+describe('createInventoryServiceClient', () => {
+  const validCategory = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'General',
+    description: null,
+    createdAt: '2026-09-19T12:00:00.000Z',
+    updatedAt: '2026-09-19T12:00:00.000Z'
+  };
+
+  const validProduct = {
+    id: 'sku-1',
+    name: 'Widget',
+    priceCents: 1299,
+    description: 'Standard widget',
+    onHand: 100,
+    reservedQty: 0,
+    categories: [validCategory],
+    createdAt: '2026-09-19T12:00:00.000Z',
+    updatedAt: '2026-09-19T12:00:00.000Z'
+  };
+
+  function createTestInventoryServiceClient(fetchImpl: typeof fetch) {
+    const httpClient = createHttpClient({
+      baseUrl: 'http://localhost:3003',
+      timeoutMs: 1000,
+      serviceName: 'inventory-service',
+      fetchImpl
+    });
+
+    return createInventoryServiceClient(httpClient);
+  }
+
+  it('forwards create product body and correlation headers', async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const client = createTestInventoryServiceClient(async (url, init) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return new Response(JSON.stringify(validProduct), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    });
+
+    const body = {
+      id: 'sku-1',
+      name: 'Widget',
+      priceCents: 1299,
+      description: 'Standard widget',
+      categoryIds: [validCategory.id],
+      onHand: 100
+    };
+
+    const result = await client.createProduct(body, {
+      requestId: 'req-cat-1',
+      correlationId: 'corr-cat-1',
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736'
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe('http://localhost:3003/products');
+    expect(calls[0].init.method).toBe('POST');
+    expect(calls[0].init.body).toBe(JSON.stringify(body));
+    expect(headerValue(calls[0].init.headers, 'x-request-id')).toBe('req-cat-1');
+    expect(headerValue(calls[0].init.headers, 'x-correlation-id')).toBe('corr-cat-1');
+    expect(result.statusCode).toBe(201);
+    expect(isProductResponse(result.body)).toBe(true);
+  });
+
+  it('lists products with a category filter and returns 502 when unavailable', async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const client = createTestInventoryServiceClient(async (url, init) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return new Response(JSON.stringify([validProduct]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    });
+
+    const listed = await client.listProducts(
+      { categoryId: validCategory.id },
+      { requestId: 'req-cat-2', correlationId: 'corr-cat-2', traceId: null }
+    );
+
+    expect(calls[0].url).toBe(
+      `http://localhost:3003/products?categoryId=${validCategory.id}`
+    );
+    expect(listed.statusCode).toBe(200);
+    expect(isProductListResponse(listed.body)).toBe(true);
+
+    const unavailable = createTestInventoryServiceClient(async () => {
+      throw new Error('network down');
+    });
+    const result = await unavailable.deleteCategory(validCategory.id, {
+      requestId: 'req-cat-3',
+      correlationId: 'corr-cat-3',
+      traceId: null
+    });
+    expect(result.statusCode).toBe(502);
+    expect(result.body).toEqual({ error: 'inventory-service unavailable' });
   });
 });

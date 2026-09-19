@@ -18,6 +18,10 @@ export const testSuites: readonly TestSuite[] = [
     label: 'contracts create-order validation',
     path: 'packages/contracts/test/create-order.test.ts'
   },
+  {
+    label: 'contracts catalog validation',
+    path: 'packages/contracts/test/catalog.test.ts'
+  },
   { label: 'kafka package', path: 'packages/kafka/test/topic-definitions.test.ts' },
   { label: 'kafka schema factories', path: 'packages/kafka/test/schema.test.ts' },
   { label: 'kafka backoff', path: 'packages/kafka/test/backoff.test.ts' },
@@ -61,6 +65,10 @@ export const testSuites: readonly TestSuite[] = [
     path: 'apps/api-gateway/test/integration/orders.test.ts'
   },
   {
+    label: 'api-gateway catalog integration tests',
+    path: 'apps/api-gateway/test/integration/catalog.test.ts'
+  },
+  {
     label: 'payment-service unit tests',
     path: 'apps/payment-service/test/unit/schema.test.ts',
     runner: 'jest',
@@ -81,6 +89,36 @@ export const testSuites: readonly TestSuite[] = [
   {
     label: 'payment-service outbox integration tests',
     path: 'apps/payment-service/test/integration/outbox.test.ts'
+  },
+  {
+    label: 'inventory-service unit tests',
+    path: 'apps/inventory-service/test/unit/schema.test.ts',
+    runner: 'jest',
+    cwd: 'apps/inventory-service'
+  },
+  {
+    label: 'inventory-service integration tests',
+    path: 'apps/inventory-service/test/integration/health.test.ts'
+  },
+  {
+    label: 'inventory-service inventory integration tests',
+    path: 'apps/inventory-service/test/integration/inventory.test.ts'
+  },
+  {
+    label: 'inventory-service kafka integration tests',
+    path: 'apps/inventory-service/test/integration/kafka.test.ts'
+  },
+  {
+    label: 'inventory-service outbox integration tests',
+    path: 'apps/inventory-service/test/integration/outbox.test.ts'
+  },
+  {
+    label: 'inventory-service seed integration tests',
+    path: 'apps/inventory-service/test/integration/seed.test.ts'
+  },
+  {
+    label: 'inventory-service catalog integration tests',
+    path: 'apps/inventory-service/test/integration/catalog.test.ts'
   },
   { label: 'test suite registry', path: 'tests/run-all.test.ts' }
 ];

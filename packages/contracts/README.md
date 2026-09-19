@@ -1,6 +1,6 @@
 # contracts
 
-Shared message envelope types and helpers for Kafka commands and domain events.
+Shared message envelope types, HTTP catalog/order contracts, and helpers for Kafka commands and domain events.
 
 ## Exported helpers
 

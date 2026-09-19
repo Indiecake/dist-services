@@ -46,7 +46,7 @@ Poison envelopes and commands that exhaust bounded retries are published to a do
 |---|---|---|---|
 | Orders | `dist.deadletter.orders` | Unprocessable order commands reserved for a future order-service consumer | `orderId` |
 | Payments | `dist.deadletter.payments` | Unprocessable payment commands after validation failure or exhausted retries | `orderId` |
-| Inventory | `dist.deadletter.inventory` | Unprocessable inventory commands reserved for a future inventory-service consumer | `orderId` |
+| Inventory | `dist.deadletter.inventory` | Unprocessable inventory commands after validation failure or exhausted retries | `orderId` |
 | Shipping | `dist.deadletter.shipping` | Unprocessable shipping commands reserved for a future shipping-service consumer | `orderId` |
 
 Consumers should dead-letter unknown `type` values, unsupported `version` values, and malformed envelopes. Business declines such as a refused charge are result events (`payment.failed`), not dead letters.
@@ -138,8 +138,13 @@ Example event envelope:
 | `PaymentRefunded` | `payment.refunded` | `MESSAGE_TYPES.PAYMENT_REFUNDED` |
 | `RefundPaymentFailed` | `payment.refund.failed` | `MESSAGE_TYPES.PAYMENT_REFUND_FAILED` |
 | `PaymentDeadlettered` | `payment.deadlettered` | `MESSAGE_TYPES.PAYMENT_DEADLETTERED` |
+| `ReserveInventoryCommand` | `inventory.reserve.requested` | `MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED` |
 | `InventoryReserved` | `inventory.reserved` | `MESSAGE_TYPES.INVENTORY_RESERVED` |
 | `InventoryReservationFailed` | `inventory.reservation.failed` | `MESSAGE_TYPES.INVENTORY_RESERVATION_FAILED` |
+| `ReleaseInventoryRequested` | `inventory.release.requested` | `MESSAGE_TYPES.INVENTORY_RELEASE_REQUESTED` |
+| `InventoryReleased` | `inventory.released` | `MESSAGE_TYPES.INVENTORY_RELEASED` |
+| `InventoryReleaseFailed` | `inventory.release.failed` | `MESSAGE_TYPES.INVENTORY_RELEASE_FAILED` |
+| `InventoryDeadlettered` | `inventory.deadlettered` | `MESSAGE_TYPES.INVENTORY_DEADLETTERED` |
 | `ShipmentCreated` | `shipping.created` | `MESSAGE_TYPES.SHIPPING_CREATED` |
 | `ShipmentFailed` | `shipping.failed` | `MESSAGE_TYPES.SHIPPING_FAILED` |
 
@@ -176,7 +181,8 @@ const command = createCommandEnvelope({
   correlationId: 'corr-order-456',
   payload: {
     orderId: 'order-456',
-    reservationId: 'res-456'
+    reservationId: 'res-456',
+    items: [{ productId: 'sku-1', quantity: 1 }]
   }
 });
 

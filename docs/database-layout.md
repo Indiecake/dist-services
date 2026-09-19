@@ -10,7 +10,7 @@ Local development uses a single PostgreSQL instance with one schema per stateful
 |---|---|---|
 | `order-service` | `orders_schema` | Order aggregates, outbox, inbox, and order read helpers |
 | `payment-service` | `payments_schema` | Payment state, payment outbox, and settlement tracking |
-| `inventory-service` | `inventory_schema` | Reservation state, stock movements, and inbox handling |
+| `inventory-service` | `inventory_schema` | Catalog products and categories, reservation state, stock, inbox/outbox, reservation items, and dead letters |
 | `shipping-service` | `shipping_schema` | Shipment state and shipment workflow events |
 | `saga-orchestrator` | `saga_schema` | Saga coordination state, checkpoints, and orchestration logs |
 | `reporting-worker` | `reporting_schema` | Reporting projections and analytical read models |
@@ -38,6 +38,7 @@ Competing pollers claim unpublished rows with `FOR UPDATE SKIP LOCKED` and a tim
 - Service-specific migrations live under `apps/<service>/database/migrations/`.
 - Use sortable file names such as `001-create-orders-tables.sql` and `002-add-order-outbox.sql`.
 - Keep seed or developer-only data separate from structural migrations.
+- `inventory-service` local catalog rows (`sku-1`, `sku-2`) plus a `General` category are applied with `pnpm --filter @services-sandbox/inventory-service db:seed`, not via SQL migrations.
 
 ## Notes
 
