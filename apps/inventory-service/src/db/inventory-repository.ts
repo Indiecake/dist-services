@@ -37,6 +37,7 @@ import {
   inboxEvents,
   inventoryReservations,
   outboxEvents,
+  products,
   reservationItems,
   stock
 } from './schema.ts';
@@ -281,6 +282,16 @@ export class InventoryRepository implements OutboxStore {
 
   private async tryReserveStock(tx: NodePgDatabase, items: LineItem[]): Promise<string | null> {
     for (const item of sortedLineItems(items)) {
+      const [product] = await tx
+        .select({ id: products.id, deletedAt: products.deletedAt })
+        .from(products)
+        .where(eq(products.id, item.productId))
+        .limit(1);
+
+      if (!product || product.deletedAt) {
+        return `product not found: ${item.productId}`;
+      }
+
       const updated = await tx
         .update(stock)
         .set({

@@ -1,13 +1,14 @@
 # inventory-service
 
-Inventory domain service for DIST-17. Consumes reserve and release commands from Kafka, records stock reservations, and publishes result events through a transactional outbox. HTTP is limited to liveness and readiness.
+Inventory domain service for DIST-17. Consumes reserve and release commands from Kafka, records stock reservations, and publishes result events through a transactional outbox. HTTP covers liveness, readiness, and catalog CRUD for products and categories.
 
 ## Status
 
-Implemented for DIST-17:
+Implemented for DIST-17 plus catalog HTTP:
 
 - `GET /health` liveness endpoint
 - `GET /ready` readiness endpoint (Postgres connectivity)
+- Product and category Read/Create/Update/soft-Delete HTTP APIs
 - Kafka consumer on `dist.command.inventory` for `inventory.reserve.requested` and `inventory.release.requested`
 - Result events on `dist.event.inventory` (`inventory.reserved`, `inventory.reservation.failed`, `inventory.released`, `inventory.release.failed`)
 - Inbox/outbox/dead-letter tables composed from `@services-sandbox/kafka/schema`
@@ -40,7 +41,7 @@ pnpm --filter @services-sandbox/inventory-service db:seed
 pnpm --filter @services-sandbox/inventory-service start
 ```
 
-`db:seed` applies pending migrations, then inserts local catalog rows for `sku-1` and `sku-2`. Re-running it is safe: existing stock quantities and reservations are left unchanged.
+`db:seed` applies pending migrations, then inserts local catalog rows for `sku-1` and `sku-2` (with names, prices, and a `General` category). Re-running it is safe: existing stock quantities and reservations are left unchanged. Product catalog fields and category links are upserted.
 
 From this directory:
 
@@ -59,6 +60,16 @@ pnpm exec drizzle-kit generate
 | ------ | ---- | ----------- |
 | GET | `/health` | Liveness check |
 | GET | `/ready` | Readiness check |
+| GET | `/categories` | List active categories |
+| POST | `/categories` | Create a category |
+| GET | `/categories/:categoryId` | Fetch an active category |
+| PATCH | `/categories/:categoryId` | Partial category update |
+| DELETE | `/categories/:categoryId` | Soft-delete a category |
+| GET | `/products` | List active products; optional `?categoryId=` |
+| POST | `/products` | Create a product |
+| GET | `/products/:productId` | Fetch an active product |
+| PATCH | `/products/:productId` | Partial product update |
+| DELETE | `/products/:productId` | Soft-delete a product |
 
 There is no HTTP API for reserving or releasing inventory.
 

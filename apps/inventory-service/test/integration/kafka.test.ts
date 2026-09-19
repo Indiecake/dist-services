@@ -9,6 +9,7 @@ import { createCommandEnvelope } from '@services-sandbox/contracts';
 import { COMMAND_TOPICS, DEADLETTER_TOPICS, EVENT_TOPICS } from '@services-sandbox/kafka';
 import { MESSAGE_TYPES } from '@services-sandbox/contracts/messages/order-service-workflow';
 
+import { catalogItem } from '../../src/db/seed-catalog.ts';
 import { createInventoryService } from '../../src/server.ts';
 
 async function isPostgresAvailable(databaseUrl: string): Promise<boolean> {
@@ -108,7 +109,7 @@ test('Kafka round-trip publishes inventory.reserved on dist.event.inventory', as
 
   try {
     const productId = `sku-${randomUUID()}`;
-    await runtime.repository.seedCatalog([{ productId, onHand: 5 }]);
+    await runtime.repository.seedCatalog([catalogItem(productId, 5)]);
 
     await producer.connect();
     await consumer.connect();

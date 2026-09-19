@@ -4,6 +4,8 @@ import type { EdgeServiceConfig } from '@services-sandbox/config';
 export interface GatewayConfig extends EdgeServiceConfig {
   orderServiceBaseUrl: string;
   orderServiceTimeoutMs: number;
+  inventoryServiceBaseUrl: string;
+  inventoryServiceTimeoutMs: number;
 }
 
 type ServiceEnvironment = NodeJS.ProcessEnv | Record<string, string | undefined>;
@@ -66,6 +68,13 @@ export function loadGatewayConfig(env: ServiceEnvironment = process.env): Gatewa
     5000,
     issues
   );
+  const inventoryServiceBaseUrl = readUrl(env, 'INVENTORY_SERVICE_BASE_URL', issues);
+  const inventoryServiceTimeoutMs = readOptionalPositiveInt(
+    env,
+    'INVENTORY_SERVICE_TIMEOUT_MS',
+    5000,
+    issues
+  );
 
   if (issues.length > 0) {
     throw new ConfigValidationError(issues);
@@ -74,6 +83,8 @@ export function loadGatewayConfig(env: ServiceEnvironment = process.env): Gatewa
   return {
     ...edge,
     orderServiceBaseUrl: normalizeBaseUrl(orderServiceBaseUrl as string),
-    orderServiceTimeoutMs
+    orderServiceTimeoutMs,
+    inventoryServiceBaseUrl: normalizeBaseUrl(inventoryServiceBaseUrl as string),
+    inventoryServiceTimeoutMs
   };
 }

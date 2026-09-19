@@ -32,6 +32,7 @@ Agents must update this file before starting work, while working, and after fini
 
 | Task ID | Title | Completed At | Agent | Related Jira |
 |---|---|---|---|---|
+| TASK-035 | Inventory catalog tables and APIs | 2026-09-19 | cursor-agent | N/A |
 | TASK-034 | Add inventory-service catalog seeder | 2026-08-29 | cursor-agent | N/A |
 | TASK-033 | DIST-17 inventory-service reservation handlers | 2026-08-29 | cursor-agent | DIST-17 |
 | TASK-032 | Fix kafka dispatch generic and payment-service logger reuse | 2026-08-23 | cursor-agent | DIST-22 |
@@ -69,6 +70,49 @@ Agents must update this file before starting work, while working, and after fini
 ---
 
 ## Detailed Task Notes
+
+### TASK-035 - Inventory catalog tables and APIs
+
+**Status:** DONE
+**Agent:** cursor-agent
+**Related Jira:** N/A
+**Started:** 2026-09-19
+**Last updated:** 2026-09-19
+
+#### Goal
+
+Add product catalog fields, a categories table with a many-to-many join, and Read/Create/Update/soft-Delete HTTP APIs on inventory-service, proxied through api-gateway with shared contracts.
+
+#### Expected files to change
+
+```text
+/docs/agent-task-log.md
+/docs/architecture.md
+/docs/database-layout.md
+/docs/api-contracts.md
+/docs/configuration-package.md
+/docs/local-development.md
+/packages/contracts
+/apps/inventory-service
+/apps/api-gateway
+/apps/order-service/test/integration/gateway-e2e.test.ts
+/tests/test-suite.ts
+
+```
+
+#### Outcome
+
+- Products now have `name`, `price_cents`, `description`, `updated_at`, and `deleted_at`.
+- Added `categories` and `product_categories` with a unique active category name index.
+- Inventory-service and api-gateway expose matching catalog HTTP APIs; deletes are soft deletes.
+- Local seed upserts catalog fields and a `General` category while leaving existing stock quantities unchanged.
+- Soft-deleted products are treated as missing by reserve commands.
+
+#### Follow-up
+
+- Add pagination for catalog list endpoints if the catalog grows.
+- Optionally have order-service read catalog prices from inventory-service instead of client-supplied `unitPriceCents`.
+- Catalog domain events were intentionally omitted.
 
 ### TASK-034 - Add inventory-service catalog seeder
 

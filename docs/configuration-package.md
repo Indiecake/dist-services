@@ -33,7 +33,7 @@ For stateless edge HTTP services such as `api-gateway`.
 
 `DATABASE_URL` is not required.
 
-Gateway-specific variables such as `ORDER_SERVICE_BASE_URL` are validated in `apps/api-gateway/src/config.ts`.
+Gateway-specific variables such as `ORDER_SERVICE_BASE_URL` and `INVENTORY_SERVICE_BASE_URL` are validated in `apps/api-gateway/src/config.ts`.
 
 ## Behavior
 

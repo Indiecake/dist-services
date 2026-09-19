@@ -52,7 +52,7 @@ Responsibilities:
 - Apply rate limiting and traffic protection rules
 - Create or propagate trace context
 - Route requests to internal services
-- Expose the public API surface
+- Expose the public API surface, including order creation and inventory catalog CRUD
 
 ### `order-service`
 
@@ -131,12 +131,14 @@ Events published:
 
 ### `inventory-service`
 
-The inventory service manages stock reservations and release operations.
+The inventory service owns the product catalog and stock reservations.
 
 Database tables:
 
 ```text
 products
+categories
+product_categories
 stock
 inventory_reservations
 reservation_items
@@ -147,12 +149,13 @@ dead_letter_events
 
 Responsibilities:
 
+- Maintain product and category catalog records (HTTP)
 - Reserve inventory for confirmed orders
 - Release inventory during compensation
 - Publish reservation result events
 - Dead-letter poison or exhausted-retry commands
 
-There is no HTTP API for reserving or releasing stock. The service consumes Kafka commands and publishes Kafka events.
+Catalog HTTP APIs cover create, read, update, and soft-delete for products and categories. There is no HTTP API for reserving or releasing stock. Reservation commands are consumed from Kafka.
 
 Reactive to:
 

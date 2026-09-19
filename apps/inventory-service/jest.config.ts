@@ -8,7 +8,11 @@ export default {
     '^@services-sandbox/kafka/runtime$':
       '<rootDir>/../../packages/kafka/runtime.ts',
     '^@services-sandbox/kafka/schema$': '<rootDir>/../../packages/kafka/schema.ts',
-    '^@services-sandbox/kafka$': '<rootDir>/../../packages/kafka/index.ts'
+    '^@services-sandbox/kafka$': '<rootDir>/../../packages/kafka/index.ts',
+    '^@services-sandbox/contracts/http/catalog$':
+      '<rootDir>/../../packages/contracts/http/catalog.ts',
+    '^@services-sandbox/contracts/http/errors$':
+      '<rootDir>/../../packages/contracts/http/errors.ts'
   },
   testMatch: ['<rootDir>/test/unit/**/*.test.ts'],
   transform: {

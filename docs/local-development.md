@@ -65,7 +65,7 @@ Use one of the following commands from the repository root:
 - `saga_schema` belongs to `saga-orchestrator`.
 - `reporting_schema` belongs to `reporting-worker`.
 - Service migrations should live under `apps/<service>/database/migrations`.
-- After inventory-service has migrated, seed local product/stock rows with `pnpm --filter @services-sandbox/inventory-service db:seed`.
+- After inventory-service has migrated, seed local product/stock rows (including names, prices, and a General category) with `pnpm --filter @services-sandbox/inventory-service db:seed`.
 - If you need the init SQL to rerun locally, use `make reset` before `make up`.
 
 ## Troubleshooting

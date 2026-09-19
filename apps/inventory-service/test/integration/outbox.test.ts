@@ -8,6 +8,7 @@ import { createCommandEnvelope } from '@services-sandbox/contracts';
 import { MESSAGE_TYPES } from '@services-sandbox/contracts/messages/order-service-workflow';
 
 import type { OutboxRecord } from '../../src/db/inventory-repository.ts';
+import { catalogItem } from '../../src/db/seed-catalog.ts';
 import { handleInventoryCommand } from '../../src/messaging/command-handler.ts';
 import { createInventoryService } from '../../src/server.ts';
 
@@ -46,7 +47,7 @@ async function insertUnpublishedReserve(
   repository: Parameters<typeof handleInventoryCommand>[0]['repository']
 ): Promise<OutboxRecord> {
   const productId = `sku-${randomUUID()}`;
-  await repository.seedCatalog([{ productId, onHand: 5 }]);
+  await repository.seedCatalog([catalogItem(productId, 5)]);
 
   const envelope = createCommandEnvelope({
     type: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,

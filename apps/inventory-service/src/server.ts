@@ -8,12 +8,15 @@ import {
 } from '@services-sandbox/kafka/runtime';
 import { createLogger, shouldLogHttpRequest } from '@services-sandbox/telemetry';
 
+import { CatalogRepository } from './db/catalog-repository.ts';
 import { createDbClient } from './db/client.ts';
 import { InventoryRepository } from './db/inventory-repository.ts';
 import { runMigrations } from './db/migrate.ts';
 import { SERVICE_NAME } from './domain/types.ts';
 import { handleInventoryCommand } from './messaging/command-handler.ts';
+import { registerCategoryRoutes } from './routes/categories.ts';
 import { registerHealthRoutes } from './routes/health.ts';
+import { registerProductRoutes } from './routes/products.ts';
 
 export interface CreateInventoryServiceOptions {
   enableMessaging?: boolean;
@@ -60,7 +63,10 @@ export async function createInventoryService(
   });
 
   const repository = new InventoryRepository(db);
+  const catalogRepository = new CatalogRepository(db);
   registerHealthRoutes(app, pool);
+  registerCategoryRoutes(app, catalogRepository);
+  registerProductRoutes(app, catalogRepository);
 
   let messaging: KafkaRuntime | null = null;
   const enableMessaging = options.enableMessaging ?? false;

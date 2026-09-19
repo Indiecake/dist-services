@@ -8,6 +8,7 @@ import { createCommandEnvelope } from '@services-sandbox/contracts';
 import { DEADLETTER_TOPICS, EVENT_TOPICS } from '@services-sandbox/kafka';
 import { MESSAGE_TYPES } from '@services-sandbox/contracts/messages/order-service-workflow';
 
+import { catalogItem } from '../../src/db/seed-catalog.ts';
 import { handleInventoryCommand } from '../../src/messaging/command-handler.ts';
 import { createInventoryService } from '../../src/server.ts';
 
@@ -55,7 +56,7 @@ test('reserve command persists reservation, stock, inbox, and outbox together', 
 
   try {
     const productId = `sku-${randomUUID()}`;
-    await runtime.repository.seedCatalog([{ productId, onHand: 5 }]);
+    await runtime.repository.seedCatalog([catalogItem(productId, 5)]);
 
     const envelope = createCommandEnvelope({
       type: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,
@@ -106,8 +107,8 @@ test('insufficient stock publishes inventory.reservation.failed without reservin
     const available = `sku-${randomUUID()}`;
     const scarce = `sku-${randomUUID()}`;
     await runtime.repository.seedCatalog([
-      { productId: available, onHand: 10 },
-      { productId: scarce, onHand: 1 }
+      catalogItem(available, 10),
+      catalogItem(scarce, 1)
     ]);
 
     const envelope = createCommandEnvelope({
@@ -192,7 +193,7 @@ test('redelivery of the same messageId does not create another inventory event',
 
   try {
     const productId = `sku-${randomUUID()}`;
-    await runtime.repository.seedCatalog([{ productId, onHand: 5 }]);
+    await runtime.repository.seedCatalog([catalogItem(productId, 5)]);
 
     const envelope = createCommandEnvelope({
       type: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,
@@ -241,7 +242,7 @@ test('release command restores reserved quantity and publishes inventory.release
     const productId = `sku-${randomUUID()}`;
     const orderId = `order-${randomUUID()}`;
     const reservationId = `res-${randomUUID()}`;
-    await runtime.repository.seedCatalog([{ productId, onHand: 5 }]);
+    await runtime.repository.seedCatalog([catalogItem(productId, 5)]);
 
     const reserve = createCommandEnvelope({
       type: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,
@@ -294,7 +295,7 @@ test('two concurrent reserves of the last unit yield one reserved and one failed
 
   try {
     const productId = `sku-${randomUUID()}`;
-    await runtime.repository.seedCatalog([{ productId, onHand: 1 }]);
+    await runtime.repository.seedCatalog([catalogItem(productId, 1)]);
 
     const first = createCommandEnvelope({
       type: MESSAGE_TYPES.INVENTORY_RESERVE_REQUESTED,

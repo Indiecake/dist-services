@@ -24,6 +24,8 @@ function configureGatewayEnv(baseUrl: string): void {
   process.env.LOG_LEVEL = 'info';
   process.env.ORDER_SERVICE_BASE_URL = baseUrl;
   process.env.ORDER_SERVICE_TIMEOUT_MS = '1000';
+  process.env.INVENTORY_SERVICE_BASE_URL = 'http://127.0.0.1:3003';
+  process.env.INVENTORY_SERVICE_TIMEOUT_MS = '1000';
 }
 
 async function startMockOrderService(

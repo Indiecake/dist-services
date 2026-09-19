@@ -63,6 +63,8 @@ test('gateway forwards order creation to order-service end-to-end', async (t) =>
   process.env.PORT = '3010';
   process.env.ORDER_SERVICE_BASE_URL = `http://127.0.0.1:${orderAddress.port}`;
   process.env.ORDER_SERVICE_TIMEOUT_MS = '5000';
+  process.env.INVENTORY_SERVICE_BASE_URL = 'http://127.0.0.1:3003';
+  process.env.INVENTORY_SERVICE_TIMEOUT_MS = '5000';
 
   const gatewayRuntime = await createApiGateway();
 

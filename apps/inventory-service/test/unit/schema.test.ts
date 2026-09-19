@@ -9,9 +9,11 @@ describe('inventory-service schema', () => {
     expect(INVENTORY_SCHEMA_NAME).toBe('inventory_schema');
   });
 
-  it('defines product, stock, reservation, inbox, outbox, and dead-letter tables', () => {
+  it('defines product, category, stock, reservation, inbox, outbox, and dead-letter tables', () => {
     expect(INVENTORY_TABLE_NAMES).toEqual([
       'products',
+      'categories',
+      'product_categories',
       'stock',
       'inventory_reservations',
       'reservation_items',
@@ -20,6 +22,8 @@ describe('inventory-service schema', () => {
       'dead_letter_events'
     ]);
     expect(inventoryServiceTables.products).toBeDefined();
+    expect(inventoryServiceTables.categories).toBeDefined();
+    expect(inventoryServiceTables.productCategories).toBeDefined();
     expect(inventoryServiceTables.stock).toBeDefined();
     expect(inventoryServiceTables.inventoryReservations).toBeDefined();
     expect(inventoryServiceTables.reservationItems).toBeDefined();

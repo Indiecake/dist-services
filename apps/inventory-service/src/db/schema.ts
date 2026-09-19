@@ -1,4 +1,13 @@
-import { integer, pgSchema, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  integer,
+  pgSchema,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid
+} from 'drizzle-orm/pg-core';
 
 import {
   createDeadLetterEventsTable,
@@ -12,10 +21,53 @@ export const inventorySchema = pgSchema(INVENTORY_SCHEMA_NAME);
 
 export const products = inventorySchema.table('products', {
   id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  priceCents: integer('price_cents').notNull(),
+  description: text('description'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
     .notNull()
-    .defaultNow()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+    .notNull()
+    .defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' })
 });
+
+export const categories = inventorySchema.table(
+  'categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' })
+  },
+  (table) => [
+    uniqueIndex('categories_active_name_idx')
+      .on(sql`lower(${table.name})`)
+      .where(sql`${table.deletedAt} is null`)
+  ]
+);
+
+export const productCategories = inventorySchema.table(
+  'product_categories',
+  {
+    productId: text('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' })
+  },
+  (table) => [
+    primaryKey({ columns: [table.productId, table.categoryId] })
+  ]
+);
 
 export const stock = inventorySchema.table('stock', {
   productId: text('product_id')
@@ -55,6 +107,8 @@ export const deadLetterEvents = createDeadLetterEventsTable(inventorySchema);
 
 export const inventoryServiceTables = {
   products,
+  categories,
+  productCategories,
   stock,
   inventoryReservations,
   reservationItems,
@@ -65,6 +119,8 @@ export const inventoryServiceTables = {
 
 export const INVENTORY_TABLE_NAMES = Object.freeze([
   'products',
+  'categories',
+  'product_categories',
   'stock',
   'inventory_reservations',
   'reservation_items',

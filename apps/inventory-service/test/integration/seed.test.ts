@@ -10,6 +10,7 @@ import { InventoryRepository } from '../../src/db/inventory-repository.ts';
 import { runMigrations } from '../../src/db/migrate.ts';
 import { stock } from '../../src/db/schema.ts';
 import {
+  catalogItem,
   DEFAULT_INVENTORY_CATALOG,
   seedCatalogItems
 } from '../../src/db/seed-catalog.ts';
@@ -45,7 +46,7 @@ test('ensure mode inserts missing catalog stock and leaves existing rows unchang
     await runMigrations(db);
 
     const productId = `sku-seed-${randomUUID()}`;
-    const first = await seedCatalogItems(db, [{ productId, onHand: 10 }], { mode: 'ensure' });
+    const first = await seedCatalogItems(db, [catalogItem(productId, 10)], { mode: 'ensure' });
     assert.deepEqual(first.created, [productId]);
     assert.deepEqual(first.skipped, []);
 
@@ -54,7 +55,7 @@ test('ensure mode inserts missing catalog stock and leaves existing rows unchang
       .set({ reservedQty: 3, onHand: 8 })
       .where(eq(stock.productId, productId));
 
-    const second = await seedCatalogItems(db, [{ productId, onHand: 99 }], { mode: 'ensure' });
+    const second = await seedCatalogItems(db, [catalogItem(productId, 99)], { mode: 'ensure' });
     assert.deepEqual(second.created, []);
     assert.deepEqual(second.skipped, [productId]);
 
@@ -80,10 +81,10 @@ test('reset mode overwrites on-hand and reserved quantities', async (t) => {
     await runMigrations(db);
 
     const productId = `sku-reset-${randomUUID()}`;
-    await seedCatalogItems(db, [{ productId, onHand: 10 }], { mode: 'ensure' });
+    await seedCatalogItems(db, [catalogItem(productId, 10)], { mode: 'ensure' });
     await db.update(stock).set({ reservedQty: 4 }).where(eq(stock.productId, productId));
 
-    await repository.seedCatalog([{ productId, onHand: 25 }]);
+    await repository.seedCatalog([catalogItem(productId, 25)]);
 
     const stockRow = await repository.getStock(productId);
     assert.deepEqual(stockRow, { onHand: 25, reservedQty: 0 });

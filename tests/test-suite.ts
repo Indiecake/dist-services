@@ -18,6 +18,10 @@ export const testSuites: readonly TestSuite[] = [
     label: 'contracts create-order validation',
     path: 'packages/contracts/test/create-order.test.ts'
   },
+  {
+    label: 'contracts catalog validation',
+    path: 'packages/contracts/test/catalog.test.ts'
+  },
   { label: 'kafka package', path: 'packages/kafka/test/topic-definitions.test.ts' },
   { label: 'kafka schema factories', path: 'packages/kafka/test/schema.test.ts' },
   { label: 'kafka backoff', path: 'packages/kafka/test/backoff.test.ts' },
@@ -59,6 +63,10 @@ export const testSuites: readonly TestSuite[] = [
   {
     label: 'api-gateway integration tests',
     path: 'apps/api-gateway/test/integration/orders.test.ts'
+  },
+  {
+    label: 'api-gateway catalog integration tests',
+    path: 'apps/api-gateway/test/integration/catalog.test.ts'
   },
   {
     label: 'payment-service unit tests',
@@ -107,6 +115,10 @@ export const testSuites: readonly TestSuite[] = [
   {
     label: 'inventory-service seed integration tests',
     path: 'apps/inventory-service/test/integration/seed.test.ts'
+  },
+  {
+    label: 'inventory-service catalog integration tests',
+    path: 'apps/inventory-service/test/integration/catalog.test.ts'
   },
   { label: 'test suite registry', path: 'tests/run-all.test.ts' }
 ];

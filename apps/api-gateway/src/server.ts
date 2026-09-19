@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import { createLogger, shouldLogHttpRequest } from '@services-sandbox/telemetry';
 
 import { loadGatewayConfig } from './config.ts';
+import { registerCatalogRoutes } from './routes/catalog.ts';
 import { registerHealthRoutes } from './routes/health.ts';
 import { registerOrderRoutes } from './routes/orders.ts';
 
@@ -41,6 +42,7 @@ export async function createApiGateway(): Promise<ApiGatewayRuntime> {
 
   registerHealthRoutes(app);
   registerOrderRoutes(app, config);
+  registerCatalogRoutes(app, config);
 
   async function close(): Promise<void> {
     await app.close();
